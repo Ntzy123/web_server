@@ -1,0 +1,322 @@
+/* 基础布局样式 */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    margin: 0;
+    padding: 0;
+    color: #333;
+}
+
+.main-container {
+    max-width: 1600px;
+    margin: 20px auto 0;
+    padding: 0 20px;
+    box-sizing: border-box;
+}
+
+.download-content {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 5px 15px rgba(255, 182, 153, 0.1);
+    border: 1px solid rgba(255, 182, 153, 0.1);
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.container {
+    max-width: 1600px;
+    margin: 50px auto;
+    padding: 30px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    color: #2c3e50;
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 2.2rem;
+}
+
+.flash-messages {
+    margin-bottom: 20px;
+}
+
+.flash-message {
+    padding: 10px 15px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.file-list {
+    list-style: none;
+    padding: 0;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    margin-bottom: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.file-item:hover {
+    background: #e9ecef;
+    transform: translateX(5px);
+}
+
+.file-icon {
+    margin-right: 15px;
+    color: #6a11cb;
+    font-size: 1.5rem;
+}
+
+.file-link {
+    flex-grow: 1;
+    color: #2c3e50;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.file-link:hover {
+    color: #6a11cb;
+}
+
+.back-link {
+    display: inline-block;
+    margin-top: 30px;
+    padding: 10px 20px;
+    background: #6a11cb;
+    color: white;
+    text-decoration: none;
+    border-radius: 30px;
+    transition: all 0.3s ease;
+}
+
+.back-link:hover {
+    background: #2575fc;
+    transform: translateY(-2px);
+}
+
+.empty-message {
+    text-align: center;
+    color: #7f8c8d;
+    font-style: italic;
+    padding: 20px;
+}
+
+.upload-section {
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #f5f5f5;
+    border-radius: 5px;
+}
+
+.upload-section h2 {
+    color: #2c3e50;
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+}
+
+.upload-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.form-group {
+    display: flex;
+    align-items: center;
+}
+
+.file-label, .key-label {
+    width: 100px;
+    font-weight: bold;
+}
+
+.file-input, .key-input {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    width: 100%;  /* 确保两个输入框宽度相同 */
+    box-sizing: border-box;  /* 包含padding和border在内的宽度计算 */
+}
+
+.upload-button {
+    padding: 10px 15px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    align-self: flex-start;
+}
+
+.upload-button:hover {
+    background-color: #45a049;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.upload-btn {
+    padding: 10px 20px;
+    background: #6a11cb;
+    color: white;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.upload-btn:hover {
+    background: #2575fc;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border-radius: 10px;
+    width: 80%;
+    max-width: 500px;
+    position: relative;
+}
+
+.close {
+    position: absolute;
+    right: 20px;
+    top: 10px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover {
+    color: #6a11cb;
+}
+
+/* 头部样式 */
+.header {
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-bottom: 20px;
+}
+
+/* 上传按钮样式 */
+.upload-btn {
+padding: 8px 16px;
+background-color: #4CAF50;
+color: white;
+border: none;
+border-radius: 4px;
+cursor: pointer;
+font-size: 14px;
+}
+
+
+.upload-btn:hover {
+background-color: #45a049;
+}
+
+/* 模态窗口样式 */
+.modal {
+display: none;
+position: fixed;
+z-index: 1;
+left: 0;
+top: 0;
+width: 100%;
+height: 100%;
+background-color: rgba(0,0,0,0.4);
+}
+
+.modal-content {
+background-color: #fefefe;
+margin: 15% auto;
+padding: 20px;
+border: 1px solid #888;
+width: 50%;
+max-width: 500px;
+border-radius: 5px;
+}
+
+.close {
+color: #aaa;
+float: right;
+font-size: 28px;
+font-weight: bold;
+cursor: pointer;
+}
+
+.close:hover {
+color: black;
+}
+
+/* 上传表单样式 */
+.upload-form {
+display: flex;
+flex-direction: column;
+gap: 15px;
+}
+
+.form-group {
+display: flex;
+flex-direction: column;
+}
+
+.file-label, .key-label {
+margin-bottom: 5px;
+font-weight: bold;
+}
+
+.file-input, .key-input {
+padding: 8px;
+border: 1px solid #ddd;
+border-radius: 4px;
+width: 45%;  /* 确保两个输入框宽度相同 */
+box-sizing: border-box;  /* 包含padding和border在内的宽度计算 */
+}
+
+.upload-button {
+padding: 10px;
+background-color: #4CAF50;
+color: white;
+border: none;
+border-radius: 4px;
+cursor: pointer;
+margin-top: 10px;
+}
+
+.upload-button:hover {
+background-color: #45a049;
+}

@@ -4,109 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>关于 - Kyrianの小站</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            margin: 0;
-            padding: 0;
-            color: #333;
-            min-height: 100vh;
-        }
-        
-        .site-title {
-            text-align: center;
-            padding: 20px 0;
-            width: 100%;
-            max-width: 1600px;
-            margin: 0 auto;
-        }
-
-        .site-title h1 {
-            margin: 0;
-            color: #2c3e50;
-            font-size: 2.5rem;
-        }
-
-        .nav-bar {
-            background: linear-gradient(to right, #6a11cb 0%, #2575fc 100%);
-            padding: 15px 0;
-            width: 100%;
-        }
-
-        .nav-bar-content {
-            max-width: 1600px;
-            margin: 0 auto;
-            padding: 0 20px;
-            box-sizing: border-box;
-        }
-
-        .nav-bar a {
-            color: white;
-            text-decoration: none;
-            padding: 10px 20px;
-            margin-right: 20px;
-            border-radius: 20px;
-            transition: all 0.3s ease;
-            font-weight: bold;
-            display: inline-block;
-        }
-
-        .nav-bar a:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .wrapper {
-            max-width: 1600px;
-            margin: 0 auto;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-
-        .about-content {
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            padding: 40px;
-            margin: 20px 0;
-        }
-
-        .about-content h2 {
-            color: #2c3e50;
-            margin: 0 0 30px;
-            font-size: 1.8rem;
-        }
-
-        .about-content p {
-            color: #666;
-            line-height: 1.8;
-            margin: 0 0 25px;
-            font-size: 1.1rem;
-        }
-
-        .about-section {
-            margin-bottom: 40px;
-        }
-
-        .about-section:last-child {
-            margin-bottom: 0;
-        }
-    </style>
+    <link rel="stylesheet" href="/static/css/common.css">
+    <link rel="stylesheet" href="/static/css/about.css">
 </head>
 <body>
     <div class="site-title">
+        <img src="/static/images/header-bg.png" alt="Header Background">
         <h1>Kyrianの小站</h1>
     </div>
 
     <div class="nav-bar">
-        <div class="nav-bar-content">
-            <a href="/">主页</a>
-            <a href="../download">下载</a>
-            <a href="/about">关于</a>
+        <div class="nav-container">
+            <div class="nav-links">
+                <a href="/">主页</a>
+                <a href="../download">下载</a>
+                <a href="/about">关于</a>
+            </div>
         </div>
     </div>
 
-    <div class="wrapper">
+    <div class="main-container">
         <div class="about-content">
             <div class="about-section">
                 <h2>关于我们</h2>
@@ -121,8 +38,15 @@
             <div class="about-section">
                 <h2>联系我们</h2>
                 <p>如果您有任何问题、建议或合作意向，请随时与我们联系。我们期待听到您的声音，您的反馈将帮助我们不断进步和改善。我们的技术支持团队将竭诚为您服务，确保您在使用过程中遇到的任何问题都能得到及时解决。</p>
+                <a href="/contact" class="button">联系我们</a>
             </div>
         </div>
     </div>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="copyright">Copyright © 2025 By <a href="/"><span>Kyrian</span></a></div>
+        </div>
+    </footer>
 </body>
 </html>

@@ -27,7 +27,7 @@ def list_files(directory):
 @app.route('/download')
 def list_directory():
     files = list_files(DOWNLOAD_DIRECTORY)
-    return render_template('file_list.html', files=files)
+    return render_template('download.html', files=files)
 
 #下载文件
 @app.route('/download/<filename>')
