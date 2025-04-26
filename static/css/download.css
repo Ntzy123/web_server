@@ -11,15 +11,30 @@
 .main-container {
     max-width: 1600px;
     width: 100%;
-    margin: 20px auto 0;
-    padding: 0;
+    margin: 0 auto 0 !important;
+    padding: 0 20px;
     box-sizing: border-box;
+}
+
+.nav-bar {
+    margin-bottom: 0 !important;
+}
+
+@media (max-width: 768px) {
+    .main-container {
+        padding: 0 15px;
+    }
+    
+    .container {
+        padding: 20px;
+    }
 }
 
 .main-container > .container,
 .main-container > .download-content {
     width: 100%;
     max-width: 1600px;
+    border-radius: 15px;
     margin-left: auto;
     margin-right: auto;
     box-sizing: border-box;
@@ -27,11 +42,11 @@
 }
 
 .download-content {
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 15px;
+    background: white;
+    border-radius: 0;
     padding: 30px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: none;
+    border: none;
 }
 
 .header {
@@ -46,10 +61,11 @@
     margin: 20px auto;
     padding: 30px;
     background: white;
-    border-radius: 10px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    border-radius: 0;
+    box-shadow: none;
     width: 100%;
     box-sizing: border-box;
+    border: none;
 }
 
 h1 {
