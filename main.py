@@ -1,6 +1,6 @@
 #main.py
 
-from flask import Flask, render_template, send_from_directory, abort, request, redirect, url_for, flash
+from flask import Flask, render_template, send_from_directory, abort, request, redirect, url_for, flash, jsonify
 from werkzeug.utils import secure_filename
 import os
 from crawler.res import get_ticket_data
@@ -84,6 +84,26 @@ def upload_file():
         app.logger.error(f'上传错误: {str(e)}')
         flash('文件上传失败')
         return redirect(url_for('index'))
+
+#关于页面
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
+#工单数据API
+@app.route('/get_ticket_data')
+def get_ticket_info():
+    try:
+        ticket_data = get_ticket_data()
+        return jsonify(ticket_data)
+    except Exception as e:
+        app.logger.error(f'获取工单数据错误: {str(e)}')
+        return jsonify({
+            'title': '获取失败',
+            'status': '错误',
+            'assignee': '未知',
+            'timeout': '未知'
+        }), 500
 
 #启动
 if __name__ == "__main__":

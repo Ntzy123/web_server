@@ -3,127 +3,296 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>欢迎页面</title>
+    <title>Kyrianの小站</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
             margin: 0;
             padding: 0;
             color: #333;
-        }
-        
-        .container {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
             min-height: 100vh;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+        
+        .site-title {
             text-align: center;
-            padding: 20px;
+            background: white;
+            position: relative;
+            height: 300px;
+            overflow: hidden;
         }
-        
-        .header {
-            margin-bottom: 40px;
+
+        .site-title img {
+            width: 1920px;
+            height: 300px;
+            display: block;
+            margin: 0 auto;
         }
-        
-        h1 {
-            font-size: 2.5rem;
+
+        .site-title h1 {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            margin: 0;
             color: #2c3e50;
-            margin-bottom: 10px;
+            font-size: 2.5rem;
+            text-shadow: 0 2px 4px rgba(255, 255, 255, 0.5);
+            z-index: 1;
         }
-        
-        p {
-            font-size: 1.2rem;
-            color: #7f8c8d;
-            max-width: 600px;
-            line-height: 1.6;
+
+        .nav-bar {
+            background: rgba(26, 41, 128, 0.85);
+            backdrop-filter: blur(10px);
+            height: 56px;
+            display: flex;
+            align-items: center;
+            position: relative;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        
+
+        .nav-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 0 20px;
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        .nav-links {
+            margin-left: 45px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-links a {
+            color: rgba(255, 255, 255, 0.95);
+            text-decoration: none;
+            padding: 8px 24px;
+            margin-right: 15px;
+            border-radius: 8px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 500;
+            font-size: 0.95rem;
+            letter-spacing: 0.3px;
+            position: relative;
+            background: transparent;
+            border: 1px solid transparent;
+        }
+
+        .nav-links a:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .nav-links a:active {
+            transform: translateY(0);
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .main-container {
+            max-width: 1600px;
+            margin: 20px auto 0;
+            padding: 0 20px;
+            display: flex;
+            gap: 30px;
+            box-sizing: border-box;
+        }
+
+        .content-area {
+            flex: 1;
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            min-width: 0;
+        }
+
+        .welcome-text {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .feature-list {
+            margin: 30px 0;
+        }
+
+        .feature-item {
+            background: linear-gradient(135deg, #f6f8fa 0%, #e9ecef 100%);
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .feature-item h3 {
+            color: #2c3e50;
+            margin: 0 0 10px 0;
+        }
+
+        .feature-item p {
+            margin: 0;
+            color: #666;
+        }
+
+        .download-section {
+            text-align: center;
+        }
+
         .download-btn {
             display: inline-block;
-            padding: 15px 30px;
+            padding: 15px 40px;
             background: linear-gradient(to right, #6a11cb 0%, #2575fc 100%);
             color: white;
             text-decoration: none;
             border-radius: 30px;
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             font-weight: bold;
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(106, 17, 203, 0.3);
-            border: none;
-            cursor: pointer;
-            margin-top: 20px;
         }
         
         .download-btn:hover {
             transform: translateY(-3px);
             box-shadow: 0 6px 20px rgba(106, 17, 203, 0.4);
-            background: linear-gradient(to right, #6a11cb 0%, #2575fc 70%);
         }
-        
-        .features {
-            display: flex;
-            justify-content: space-around;
-            flex-wrap: wrap;
-            margin: 50px 0;
-            max-width: 900px;
+
+        .sidebar {
+            width: 350px;
+            flex-shrink: 0;
         }
-        
-        .feature {
-            flex: 1;
-            min-width: 250px;
-            margin: 15px;
-            padding: 25px;
+
+        .ticket-window {
             background: white;
             border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-            transition: transform 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            padding: 25px;
+        }
+
+        .ticket-window h2 {
+            color: #2c3e50;
+            margin: 0 0 20px;
             text-align: center;
+            font-size: 1.5rem;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
         }
-        
-        .feature p {
-            margin: 0 auto;
-            max-width: 80%;
+
+        .ticket-info {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
         }
-        
-        .feature:hover {
-            transform: translateY(-10px);
+
+        .ticket-row {
+            padding: 10px;
+            border-radius: 6px;
+            background: #f8f9fa;
         }
-        
-        .feature-icon {
-            font-size: 2.5rem;
-            margin-bottom: 15px;
-            color: #6a11cb;
+
+        .ticket-label {
+            display: block;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        .ticket-value {
+            display: block;
+            color: #4a5568;
+            font-size: 1rem;
+            padding: 5px 0;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>欢迎使用我们的产品</h1>
-            <p>一个简单而强大的解决方案，为您的工作和生活带来便利</p>
-        </div>
-        
-        <div class="features">
-            <div class="feature">
-                <div class="feature-icon">🚀</div>
-                <h3>高效性能</h3>
-                <p>快速响应的设计，让您的体验更加流畅</p>
-            </div>
-            <div class="feature">
-                <div class="feature-icon">🔒</div>
-                <h3>安全可靠</h3>
-                <p>采用最新技术保障您的数据安全</p>
-            </div>
-            <div class="feature">
-                <div class="feature-icon">🔄</div>
-                <h3>持续更新</h3>
-                <p>定期更新功能，满足您的需求</p>
-            </div>
-        </div>
-        
-        <a href="../download" class="download-btn">立即下载</a>
+    <div class="site-title">
+        <img src="/static/images/header-bg.png" alt="Header Background">
+        <h1>Kyrianの小站</h1>
     </div>
+
+    <div class="nav-bar">
+        <div class="nav-container">
+            <div class="nav-links">
+                <a href="/">主页</a>
+                <a href="../download">下载</a>
+                <a href="/about">关于</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="content-area">
+            <div class="welcome-text">
+                欢迎来到Kyrianの小站！这里是一个充满活力和创意的空间，我们致力于为您提供最优质的服务和资源。
+                无论您是寻找学习资料、工具软件还是其他资源，我们都将竭诚为您服务。
+            </div>
+
+            <div class="feature-list">
+                <div class="feature-item">
+                    <h3>资源更新</h3>
+                    <p>我们定期更新资源库，确保您能获取到最新、最实用的内容。所有资源都经过严格筛选和测试，保证质量和安全性。</p>
+                </div>
+                <div class="feature-item">
+                    <h3>下载体验</h3>
+                    <p>采用高速CDN加速，为您提供稳定、快速的下载体验。多线路备份，确保资源的高可用性。</p>
+                </div>
+                <div class="feature-item">
+                    <h3>问题解答</h3>
+                    <p>专业的技术支持团队随时待命，为您解答使用过程中遇到的各种问题，确保您能顺利使用我们的服务。</p>
+                </div>
+            </div>
+
+            <div class="download-section">
+                <a href="../download" class="download-btn">立即下载</a>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="ticket-window">
+                <h2>工单信息</h2>
+                <div class="ticket-info">
+                    <div class="ticket-row">
+                        <span class="ticket-label">任务描述</span>
+                        <span class="ticket-value" id="ticket-title">加载中...</span>
+                    </div>
+                    <div class="ticket-row">
+                        <span class="ticket-label">状态</span>
+                        <span class="ticket-value" id="ticket-status">加载中...</span>
+                    </div>
+                    <div class="ticket-row">
+                        <span class="ticket-label">接单人</span>
+                        <span class="ticket-value" id="ticket-assignee">加载中...</span>
+                    </div>
+                    <div class="ticket-row">
+                        <span class="ticket-label">超时时间</span>
+                        <span class="ticket-value" id="ticket-timeout">加载中...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function updateTicketInfo() {
+            fetch('/get_ticket_data')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('ticket-title').textContent = data.title;
+                    document.getElementById('ticket-status').textContent = data.status;
+                    document.getElementById('ticket-assignee').textContent = data.assignee;
+                    document.getElementById('ticket-timeout').textContent = data.timeout;
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        updateTicketInfo();
+        setInterval(updateTicketInfo, 60000);
+    </script>
 </body>
 </html>

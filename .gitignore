@@ -1,4 +1,7 @@
 venv/
 dist/
 build/
+__pycache__/
+download/*
+!download/1.txt
 *.spec

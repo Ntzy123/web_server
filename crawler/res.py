@@ -22,4 +22,9 @@ def get_ticket_data():
     delimiter = "---------------------------------------------------------"
     # 格式化输出
     #print(f"{delimiter}\n\t{title}\n  状态：{status}\n  接单人：{name}\n  超时时间：{feedback_time}")
-    return title, status, name, feedback_time
+    return {
+        "title": title,
+        "status": status,
+        "assignee": name,
+        "timeout": feedback_time
+    }
