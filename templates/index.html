@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>欢迎页面</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .header {
+            margin-bottom: 40px;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        p {
+            font-size: 1.2rem;
+            color: #7f8c8d;
+            max-width: 600px;
+            line-height: 1.6;
+        }
+        
+        .download-btn {
+            display: inline-block;
+            padding: 15px 30px;
+            background: linear-gradient(to right, #6a11cb 0%, #2575fc 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 30px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(106, 17, 203, 0.3);
+            border: none;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        
+        .download-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(106, 17, 203, 0.4);
+            background: linear-gradient(to right, #6a11cb 0%, #2575fc 70%);
+        }
+        
+        .features {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            margin: 50px 0;
+            max-width: 900px;
+        }
+        
+        .feature {
+            flex: 1;
+            min-width: 250px;
+            margin: 15px;
+            padding: 25px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            transition: transform 0.3s ease;
+            text-align: center;
+        }
+        
+        .feature p {
+            margin: 0 auto;
+            max-width: 80%;
+        }
+        
+        .feature:hover {
+            transform: translateY(-10px);
+        }
+        
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: #6a11cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>欢迎使用我们的产品</h1>
+            <p>一个简单而强大的解决方案，为您的工作和生活带来便利</p>
+        </div>
+        
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">🚀</div>
+                <h3>高效性能</h3>
+                <p>快速响应的设计，让您的体验更加流畅</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🔒</div>
+                <h3>安全可靠</h3>
+                <p>采用最新技术保障您的数据安全</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🔄</div>
+                <h3>持续更新</h3>
+                <p>定期更新功能，满足您的需求</p>
+            </div>
+        </div>
+        
+        <a href="../download" class="download-btn">立即下载</a>
+    </div>
+</body>
+</html>
