@@ -16,7 +16,7 @@ fi
 # 创建虚拟环境
 if [ ! -d "venv" ]; then
    echo "正在创建虚拟环境"
-   python3 -m venv venv
+   python -m venv venv
    echo "venv环境创建成功！"
    source venv/bin/activate
 else
@@ -25,7 +25,7 @@ else
 fi
 
 # 检查并安装依赖包
-pip install --upgrade pip
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 
 # 选择操作
