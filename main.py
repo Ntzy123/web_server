@@ -105,6 +105,12 @@ def get_ticket_info():
             'timeout': '未知'
         }), 500
 
+# ticket_timeout 授权
+@app.route('/api/get_auth')
+def get_auth():
+    return "OK"
+
+
 #启动
 if __name__ == "__main__":
     app.secret_key = 'your-secret-key-here'  # 用于flash消息
