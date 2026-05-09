@@ -1,5 +1,7 @@
 #main.py
 
+import requests
+from datetime import datetime
 from flask import Flask, render_template, send_from_directory, abort, request, redirect, url_for, flash, jsonify
 from werkzeug.utils import secure_filename
 import os
@@ -109,6 +111,91 @@ def get_ticket_info():
 @app.route('/api/get_auth')
 def get_auth():
     return "OK"
+
+
+# 桶装水数据API
+@app.route('/api/water')
+def get_water_data():
+    """获取桶装水订单数据并统计"""
+    try:
+        # 获取查询日期，默认当天
+        date_str = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+
+        url = (
+            f"https://neighbor.4009515151.com/mephisto/merchant/itemorder/waitconfrim"
+            f"?searchStartTime={date_str}"
+            f"&searchEndTime={date_str}"
+            f"&pageNum=1"
+            f"&pageSize=100"
+            f"&goodsType=2"
+        )
+
+        headers = {
+            "User-Agent": "VKStaffAssistant-Android-6.44.0-Mozilla/5.0 (Linux; Android 16; 2210132C Build/BP2A.250605.031.A3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/146.0.7680.164 Mobile Safari/537.36",
+            "x-token-phone": "18085009482",
+            "x-token-auth": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJBQ0NFU1NfVE9LRU4iLCJjbGllbnRJZCI6ImJmOTcxOTZiN2YwZDRiODI4MzI2MTIyZDAyYjZhNTFiIiwic2NvcGUiOiJyLXN0YWZmIiwidG9rZW4iOiIxNzAyMDcxIiwiaWF0IjoxNzc3Nzk4ODg1LCJleHAiOjE3Nzg0MDM2ODV9.P3P8nKzFz7aoF0epzHmehbfpKgd7056EfUZSY2d1T4E",
+            "x-requested-with": "com.vanke.wyguide",
+            "referer": "https://neighbor.4009515151.com/andariel/water?at=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJBQ0NFU1NfVE9LRU4iLCJjbGllbnRJZCI6ImJmOTcxOTZiN2YwZDRiODI4MzI2MTIyZDAyYjZhNTFiIiwic2NvcGUiOiJyLXN0YWZmIiwidG9rZW4iOiIxNzAyMDcxIiwiaWF0IjoxNzc3Nzk4ODg1LCJleHAiOjE3Nzg0MDM2ODV9.P3P8nKzFz7aoF0epzHmehbfpKgd7056EfUZSY2d1T4E",
+            "Cookie": "tgw_l7_route=27ac1799876fd00610bcbaf4410a86af; access_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJBQ0NFU1NfVE9LRU4iLCJjbGllbnRJZCI6ImJmOTcxOTZiN2YwZDRiODI4MzI2MTIyZDAyYjZhNTFiIiwic2NvcGUiOiJyLXN0YWZmIiwidG9rZW4iOiIxNzAyMDcxIiwiaWF0IjoxNzc3Nzk4ODg1LCJleHAiOjE3Nzg0MDM2ODV9.P3P8nKzFz7aoF0epzHmehbfpKgd7056EfUZSY2d1T4E"
+        }
+
+        resp = requests.get(url, headers=headers, timeout=10)
+        data = resp.json()
+
+        if data.get('code') != 0 or not data.get('success'):
+            return jsonify({
+                'success': False,
+                'message': '获取数据失败',
+                'raw_data': data
+            }), 500
+
+        order_list = data.get('data', {}).get('list', [])
+
+        # 过滤8:30-20:30下单的订单
+        filtered_orders = []
+        for order in order_list:
+            take_time = order.get('takeTime', '')
+            if not take_time:
+                continue
+            try:
+                dt = datetime.strptime(take_time, '%Y-%m-%d %H:%M:%S')
+                time_minutes = dt.hour * 60 + dt.minute
+                start_minutes = 8 * 60 + 30
+                end_minutes = 20 * 60 + 30
+                if start_minutes <= time_minutes <= end_minutes:
+                    filtered_orders.append(order)
+            except (ValueError, TypeError):
+                continue
+
+        # 统计送水人员
+        waiters = {}
+        for order in filtered_orders:
+            waiter_name = order.get('waiterName', '未知')
+            waiter_mobile = order.get('waiterMobile', '')
+            appointment_num = order.get('appointmentNum', 1)
+            if waiter_name not in waiters:
+                waiters[waiter_name] = {
+                    'name': waiter_name,
+                    'mobile': waiter_mobile,
+                    'order_count': 0,
+                    'total_buckets': 0
+                }
+            waiters[waiter_name]['order_count'] += 1
+            waiters[waiter_name]['total_buckets'] += appointment_num
+
+        return jsonify({
+            'success': True,
+            'query_date': date_str,
+            'total_buckets': sum(o.get('appointmentNum', 1) for o in filtered_orders),
+            'deliverers': list(waiters.values())
+        })
+
+    except Exception as e:
+        app.logger.error(f'获取桶装水数据错误: {str(e)}')
+        return jsonify({
+            'success': False,
+            'message': f'服务器错误: {str(e)}'
+        }), 500
 
 
 #启动
