@@ -21,20 +21,104 @@ def index():
 
 
 ###/download下载页面
-#遍历目录
-def list_files(directory):
-    return [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
+#格式化文件大小
+def format_size(size_bytes):
+    if size_bytes < 1024:
+        return f"{size_bytes} B"
+    elif size_bytes < 1024 * 1024:
+        return f"{size_bytes / 1024:.1f} KB"
+    elif size_bytes < 1024 * 1024 * 1024:
+        return f"{size_bytes / (1024 * 1024):.1f} MB"
+    else:
+        return f"{size_bytes / (1024 * 1024 * 1024):.1f} GB"
+
+#遍历目录，返回文件和文件夹信息
+def list_directory_contents(directory, base_path=""):
+    items = []
+    
+    # 获取当前目录中的所有条目
+    try:
+        entries = os.listdir(directory)
+    except (PermissionError, OSError):
+        return []
+    
+    for entry in entries:
+        full_path = os.path.join(directory, entry)
+        relative_path = os.path.join(base_path, entry) if base_path else entry
+        
+        if os.path.isdir(full_path):
+            # 文件夹
+            items.append({
+                'name': entry,
+                'path': relative_path,
+                'is_dir': True,
+                'size': '-',
+                'modified': '-'
+            })
+        elif os.path.isfile(full_path):
+            # 文件
+            try:
+                stat = os.stat(full_path)
+                modified_time = datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+                size = stat.st_size
+            except (PermissionError, OSError):
+                modified_time = '未知'
+                size = 0
+            
+            items.append({
+                'name': entry,
+                'path': relative_path,
+                'is_dir': False,
+                'size': format_size(size),
+                'size_bytes': size,
+                'modified': modified_time
+            })
+    
+    # 排序：文件夹在前，然后按名称排序
+    items.sort(key=lambda x: (not x['is_dir'], x['name'].lower()))
+    return items
 
 #设置download路由
 @app.route('/download')
-def list_directory():
-    files = list_files(DOWNLOAD_DIRECTORY)
-    return render_template('download.html', files=files)
+@app.route('/download/<path:subpath>')
+def list_directory(subpath=""):
+    # 安全处理路径，防止目录遍历攻击
+    safe_path = os.path.normpath(subpath)
+    if safe_path.startswith('..') or safe_path.startswith('/') or (safe_path and safe_path.startswith('\\')):
+        abort(403)
+    
+    full_path = os.path.join(DOWNLOAD_DIRECTORY, safe_path) if safe_path else DOWNLOAD_DIRECTORY
+    
+    # 确保路径在下载目录内
+    if not os.path.abspath(full_path).startswith(os.path.abspath(DOWNLOAD_DIRECTORY)):
+        abort(403)
+    
+    # 确保是目录
+    if not os.path.isdir(full_path):
+        abort(404)
+    
+    items = list_directory_contents(full_path, safe_path)
+    return render_template('download.html', items=items, current_path=safe_path)
 
 #下载文件
-@app.route('/download/<filename>')
-def download_file(filename):
-    return send_from_directory(DOWNLOAD_DIRECTORY, filename, as_attachment=True)
+@app.route('/download/<path:filepath>')
+def download_file(filepath):
+    # 安全处理路径
+    safe_path = os.path.normpath(filepath)
+    if safe_path.startswith('..') or safe_path.startswith('/') or safe_path.startswith('\\'):
+        abort(403)
+    
+    full_path = os.path.join(DOWNLOAD_DIRECTORY, safe_path)
+    
+    # 确保路径在下载目录内
+    if not os.path.abspath(full_path).startswith(os.path.abspath(DOWNLOAD_DIRECTORY)):
+        abort(403)
+    
+    # 确保是文件
+    if not os.path.isfile(full_path):
+        abort(404)
+    
+    return send_from_directory(DOWNLOAD_DIRECTORY, safe_path, as_attachment=True)
 
 
 

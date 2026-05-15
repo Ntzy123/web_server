@@ -8,17 +8,17 @@
     <link rel="stylesheet" href="/static/css/download.css">
 </head>
 <body>
-     <!-- 顶部栏(与主页相同) -->
-     <div class="site-title">
-        <img src="/static/images/header-bg.png" alt="Header Background">
-        <h1>Kyrianの小站</h1>
+    <!-- 顶部栏(与主页相同) -->
+    <div class="site-title">
+       <img src="/static/images/header-bg.png" alt="Header Background">
+       <h1>Kyrianの小站</h1>
     </div>
 
     <div class="nav-bar">
         <div class="nav-container">
             <div class="nav-links">
                 <a href="/">主页</a>
-                <a href="../download">下载</a>
+                <a href="/download">下载</a>
                 <a href="/about">关于</a>
             </div>
         </div>
@@ -42,17 +42,79 @@
             {% endif %}
             {% endwith %}
 
-            {% if files %}
-            <ul class="file-list">
-                {% for file in files %}
-                <li class="file-item">
-                    <span class="file-icon">📄</span>
-                    <a href="/download/{{ file }}" class="file-link">{{ file }}</a>
-                </li>
+            <!-- 面包屑导航 -->
+            <div class="breadcrumb">
+                <a href="/download">全部文件</a>
+                {% if current_path %}
+                {% set paths = current_path.split('/') %}
+                {% set full = '' %}
+                {% for p in paths %}
+                    {% if full %}
+                        {% set full = full + '/' + p %}
+                    {% else %}
+                        {% set full = p %}
+                    {% endif %}
+                    <span class="breadcrumb-sep">/</span>
+                    <a href="/download/{{ full }}">{{ p }}</a>
                 {% endfor %}
-            </ul>
+                {% endif %}
+            </div>
+
+            {% if items %}
+            <div class="file-table-container">
+                <table class="file-table">
+                    <thead class="table-header">
+                        <tr>
+                            <th class="col-name">文件名</th>
+                            <th class="col-time">修改时间</th>
+                            <th class="col-size">大小</th>
+                            <th class="col-action">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if current_path %}
+                        {% set parent_paths = current_path.split('/')[:-1] %}
+                        {% set parent_path = parent_paths|join('/') if parent_paths else '' %}
+                        <tr>
+                            <td colspan="4" class="folder-row">
+                                <a href="/download{% if parent_path %}/{{ parent_path }}{% endif %}" class="parent-link">
+                                    <span class="file-icon">📁</span>
+                                    <span class="parent-text">上级目录</span>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% for item in items %}
+                        <tr class="file-row">
+                            <td class="col-name">
+                                {% if item.is_dir %}
+                                <a href="/download/{{ item.path }}" class="folder-link">
+                                    <span class="file-icon">📁</span>
+                                    <span class="file-name">{{ item.name }}</span>
+                                </a>
+                                {% else %}
+                                <a href="/download/{{ item.path }}" class="file-link" target="_blank">
+                                    <span class="file-icon">📄</span>
+                                    <span class="file-name">{{ item.name }}</span>
+                                </a>
+                                {% endif %}
+                            </td>
+                            <td class="col-time">{{ item.modified }}</td>
+                            <td class="col-size">{{ item.size }}</td>
+                            <td class="col-action">
+                                {% if not item.is_dir %}
+                                <a href="/download/{{ item.path }}" class="download-btn" download>下载</a>
+                                {% else %}
+                                <a href="/download/{{ item.path }}" class="open-btn">打开</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
             {% else %}
-            <p class="empty-message">当前没有可下载的文件</p>
+            <p class="empty-message">当前目录为空</p>
             {% endif %}
 
             <a href="/" class="back-link">返回首页</a>
