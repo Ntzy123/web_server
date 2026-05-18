@@ -1,101 +1,80 @@
-<!DOCTYPE html>
-<html lang="zh">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kyrianの小站</title>
-    <link rel="stylesheet" href="/static/css/common.css">
-    <link rel="stylesheet" href="/static/css/index.css">
-</head>
-<body>
-    <div class="site-title">
-        <img src="/static/images/header-bg.png" alt="Header Background">
-        <h1>Kyrianの小站</h1>
-    </div>
+{% extends "base.html" %}
 
-    <div class="nav-bar">
-        <div class="nav-container">
-            <div class="nav-links">
-                <a href="/">主页</a>
-                <a href="../download">下载</a>
-                <a href="/about">关于</a>
-            </div>
+{% block title %}主页 - Kyrianの小站{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/index.css">
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="content-area">
+        <div class="welcome-text">
+            欢迎来到Kyrianの小站！这里是一个充满活力和创意的空间，我们致力于为您提供最优质的服务和资源。
+            无论您是寻找学习资料、工具软件还是其他资源，我们都将竭诚为您服务。
         </div>
-    </div>
 
-    <div class="main-container">
-        <div class="content-area">
-            <div class="welcome-text">
-                欢迎来到Kyrianの小站！这里是一个充满活力和创意的空间，我们致力于为您提供最优质的服务和资源。
-                无论您是寻找学习资料、工具软件还是其他资源，我们都将竭诚为您服务。
+        <div class="feature-list">
+            <div class="feature-item">
+                <h3>资源更新</h3>
+                <p>我们定期更新资源库，确保您能获取到最新、最实用的内容。所有资源都经过严格筛选和测试，保证质量和安全性。</p>
             </div>
-
-            <div class="feature-list">
-                <div class="feature-item">
-                    <h3>资源更新</h3>
-                    <p>我们定期更新资源库，确保您能获取到最新、最实用的内容。所有资源都经过严格筛选和测试，保证质量和安全性。</p>
-                </div>
-                <div class="feature-item">
-                    <h3>下载体验</h3>
-                    <p>采用高速CDN加速，为您提供稳定、快速的下载体验。多线路备份，确保资源的高可用性。</p>
-                </div>
-                <div class="feature-item">
-                    <h3>问题解答</h3>
-                    <p>专业的技术支持团队随时待命，为您解答使用过程中遇到的各种问题，确保您能顺利使用我们的服务。</p>
-                </div>
+            <div class="feature-item">
+                <h3>下载体验</h3>
+                <p>采用高速CDN加速，为您提供稳定、快速的下载体验。多线路备份，确保资源的高可用性。</p>
             </div>
-
-            <div class="download-section">
-                <a href="../download" class="download-btn">立即下载</a>
+            <div class="feature-item">
+                <h3>问题解答</h3>
+                <p>专业的技术支持团队随时待命，为您解答使用过程中遇到的各种问题，确保您能顺利使用我们的服务。</p>
             </div>
         </div>
 
-        <div class="sidebar">
-            <div class="ticket-window">
-                <h2>工单信息</h2>
-                <div class="ticket-info">
-                    <div class="ticket-row">
-                        <span class="ticket-label">任务描述</span>
-                        <span class="ticket-value" id="ticket-title">加载中...</span>
-                    </div>
-                    <div class="ticket-row">
-                        <span class="ticket-label">状态</span>
-                        <span class="ticket-value" id="ticket-status">加载中...</span>
-                    </div>
-                    <div class="ticket-row">
-                        <span class="ticket-label">接单人</span>
-                        <span class="ticket-value" id="ticket-assignee">加载中...</span>
-                    </div>
-                    <div class="ticket-row">
-                        <span class="ticket-label">超时时间</span>
-                        <span class="ticket-value" id="ticket-timeout">加载中...</span>
-                    </div>
+        <div class="download-section">
+            <a href="../download" class="download-btn">立即下载</a>
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <div class="ticket-window">
+            <h2>工单信息</h2>
+            <div class="ticket-info">
+                <div class="ticket-row">
+                    <span class="ticket-label">任务描述</span>
+                    <span class="ticket-value" id="ticket-title">加载中...</span>
+                </div>
+                <div class="ticket-row">
+                    <span class="ticket-label">状态</span>
+                    <span class="ticket-value" id="ticket-status">加载中...</span>
+                </div>
+                <div class="ticket-row">
+                    <span class="ticket-label">接单人</span>
+                    <span class="ticket-value" id="ticket-assignee">加载中...</span>
+                </div>
+                <div class="ticket-row">
+                    <span class="ticket-label">超时时间</span>
+                    <span class="ticket-value" id="ticket-timeout">加载中...</span>
                 </div>
             </div>
         </div>
     </div>
+</div>
+{% endblock %}
 
-    <footer class="footer">
-        <div class="footer-content">
-            <div class="copyright">Copyright © 2025 By <a href="/"><span>Kyrian</span></a></div>
-        </div>
-    </footer>
+{% block extra_js %}
+<script>
+    function updateTicketInfo() {
+        fetch('/get_ticket_data')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('ticket-title').textContent = data.title;
+                document.getElementById('ticket-status').textContent = data.status;
+                document.getElementById('ticket-assignee').textContent = data.assignee;
+                document.getElementById('ticket-timeout').textContent = data.timeout;
+            })
+            .catch(error => console.error('Error:', error));
+    }
 
-    <script>
-        function updateTicketInfo() {
-            fetch('/get_ticket_data')
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('ticket-title').textContent = data.title;
-                    document.getElementById('ticket-status').textContent = data.status;
-                    document.getElementById('ticket-assignee').textContent = data.assignee;
-                    document.getElementById('ticket-timeout').textContent = data.timeout;
-                })
-                .catch(error => console.error('Error:', error));
-        }
-
-        updateTicketInfo();
-        setInterval(updateTicketInfo, 60000);
-    </script>
-</body>
-</html>
+    updateTicketInfo();
+    setInterval(updateTicketInfo, 60000);
+</script>
+{% endblock %}

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Kyrianの小站{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/common.css">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="site-title">
+        <img src="/static/images/header-bg.png" alt="Header Background">
+        <h1>Kyrianの小站</h1>
+    </div>
+
+    <div class="nav-bar">
+        <div class="nav-container">
+            <div class="nav-links">
+                <a href="/" {% if current_page == 'index' %}class="active"{% endif %}>主页</a>
+                <a href="/download" {% if current_page == 'download' %}class="active"{% endif %}>下载</a>
+                <a href="/about" {% if current_page == 'about' %}class="active"{% endif %}>关于</a>
+                <a href="/settings" {% if current_page == 'settings' %}class="active"{% endif %}>配置</a>
+            </div>
+        </div>
+    </div>
+
+    {% block content %}{% endblock %}
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="copyright">Copyright © 2025 By <a href="/"><span>Kyrian</span></a></div>
+        </div>
+    </footer>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

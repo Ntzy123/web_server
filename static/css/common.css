@@ -93,6 +93,13 @@ body {
     background: rgba(255, 255, 255, 0.3);
 }
 
+.nav-links a.active {
+    background: rgba(255, 255, 255, 0.4);
+    border-color: rgba(76, 175, 80, 0.5);
+    color: #2c3e50;
+    font-weight: 600;
+}
+
 .footer {
     background: linear-gradient(
         to right, 

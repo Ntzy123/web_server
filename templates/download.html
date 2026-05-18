@@ -1,168 +1,145 @@
-<!DOCTYPE html>
-<html lang="zh">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>下载 - Kyrianの小站</title>
-    <link rel="stylesheet" href="/static/css/common.css">
-    <link rel="stylesheet" href="/static/css/download.css">
-</head>
-<body>
-    <!-- 顶部栏(与主页相同) -->
-    <div class="site-title">
-       <img src="/static/images/header-bg.png" alt="Header Background">
-       <h1>Kyrianの小站</h1>
-    </div>
+{% extends "base.html" %}
 
-    <div class="nav-bar">
-        <div class="nav-container">
-            <div class="nav-links">
-                <a href="/">主页</a>
-                <a href="/download">下载</a>
-                <a href="/about">关于</a>
-            </div>
+{% block title %}下载 - Kyrianの小站{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/download.css">
+{% endblock %}
+
+{% block content %}
+<!-- 下载内容区域 -->
+<div class="main-container">
+    <div class="container">
+        <div class="header">
+            <h1>文件下载列表</h1>
+            <button class="upload-btn" onclick="openUploadModal()">上传文件</button>
         </div>
-    </div>
-    
-    <!-- 下载内容区域 -->
-    <div class="main-container">
-        <div class="container">
-            <div class="header">
-                <h1>文件下载列表</h1>
-                <button class="upload-btn" onclick="openUploadModal()">上传文件</button>
-            </div>
 
-            {% with messages = get_flashed_messages() %}
-            {% if messages %}
-            <div class="flash-messages">
-                {% for message in messages %}
-                <div class="flash-message">{{ message }}</div>
-                {% endfor %}
-            </div>
-            {% endif %}
-            {% endwith %}
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div class="flash-messages">
+            {% for message in messages %}
+            <div class="flash-message">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
 
-            <!-- 面包屑导航 -->
-            <div class="breadcrumb">
-                <a href="/download">全部文件</a>
-                {% if current_path %}
-                {% set paths = current_path.split('/') %}
-                {% set full = '' %}
-                {% for p in paths %}
-                    {% if full %}
-                        {% set full = full + '/' + p %}
-                    {% else %}
-                        {% set full = p %}
-                    {% endif %}
-                    <span class="breadcrumb-sep">/</span>
-                    <a href="/download/{{ full }}">{{ p }}</a>
-                {% endfor %}
+        <!-- 面包屑导航 -->
+        <div class="breadcrumb">
+            <a href="/download">全部文件</a>
+            {% if current_path %}
+            {% set paths = current_path.split('/') %}
+            {% set full = '' %}
+            {% for p in paths %}
+                {% if full %}
+                    {% set full = full + '/' + p %}
+                {% else %}
+                    {% set full = p %}
                 {% endif %}
-            </div>
-
-            {% if items %}
-            <div class="file-table-container">
-                <table class="file-table">
-                    <thead class="table-header">
-                        <tr>
-                            <th class="col-name">文件名</th>
-                            <th class="col-time">修改时间</th>
-                            <th class="col-size">大小</th>
-                            <th class="col-action">操作</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% if current_path %}
-                        {% set parent_paths = current_path.split('/')[:-1] %}
-                        {% set parent_path = parent_paths|join('/') if parent_paths else '' %}
-                        <tr>
-                            <td colspan="4" class="folder-row">
-                                <a href="/download{% if parent_path %}/{{ parent_path }}{% endif %}" class="parent-link">
-                                    <span class="file-icon">📁</span>
-                                    <span class="parent-text">上级目录</span>
-                                </a>
-                            </td>
-                        </tr>
-                        {% endif %}
-                        {% for item in items %}
-                        <tr class="file-row">
-                            <td class="col-name">
-                                {% if item.is_dir %}
-                                <a href="/download/{{ item.path }}" class="folder-link">
-                                    <span class="file-icon">📁</span>
-                                    <span class="file-name">{{ item.name }}</span>
-                                </a>
-                                {% else %}
-                                <a href="/download/{{ item.path }}" class="file-link" target="_blank">
-                                    <span class="file-icon">📄</span>
-                                    <span class="file-name">{{ item.name }}</span>
-                                </a>
-                                {% endif %}
-                            </td>
-                            <td class="col-time">{{ item.modified }}</td>
-                            <td class="col-size">{{ item.size }}</td>
-                            <td class="col-action">
-                                {% if not item.is_dir %}
-                                <a href="/download/{{ item.path }}" class="download-btn" download>下载</a>
-                                {% else %}
-                                <a href="/download/{{ item.path }}" class="open-btn">打开</a>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <p class="empty-message">当前目录为空</p>
+                <span class="breadcrumb-sep">/</span>
+                <a href="/download/{{ full }}">{{ p }}</a>
+            {% endfor %}
             {% endif %}
-
-            <a href="/" class="back-link">返回首页</a>
         </div>
 
-        <!-- 上传模态窗口 -->
-        <div id="uploadModal" class="modal">
-            <div class="modal-content">
-                <span class="close" onclick="closeUploadModal()">&times;</span>
-                <h2>上传文件</h2>
-                <form action="/upload" method="post" enctype="multipart/form-data" class="upload-form">
-                    <div class="form-group">
-                        <label for="file" class="file-label">选择文件:</label>
-                        <input type="file" id="file" name="file" class="file-input" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="secret_key" class="key-label">上传密钥:</label>
-                        <input type="password" id="secret_key" name="secret_key" class="key-input" required>
-                    </div>
-                    <button type="submit" class="upload-button">确认上传</button>
-                </form>
-            </div>
+        {% if items %}
+        <div class="file-table-container">
+            <table class="file-table">
+                <thead class="table-header">
+                    <tr>
+                        <th class="col-name">文件名</th>
+                        <th class="col-time">修改时间</th>
+                        <th class="col-size">大小</th>
+                        <th class="col-action">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if current_path %}
+                    {% set parent_paths = current_path.split('/')[:-1] %}
+                    {% set parent_path = parent_paths|join('/') if parent_paths else '' %}
+                    <tr>
+                        <td colspan="4" class="folder-row">
+                            <a href="/download{% if parent_path %}/{{ parent_path }}{% endif %}" class="parent-link">
+                                <span class="file-icon">📁</span>
+                                <span class="parent-text">上级目录</span>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% for item in items %}
+                    <tr class="file-row">
+                        <td class="col-name">
+                            {% if item.is_dir %}
+                            <a href="/download/{{ item.path }}" class="folder-link">
+                                <span class="file-icon">📁</span>
+                                <span class="file-name">{{ item.name }}</span>
+                            </a>
+                            {% else %}
+                            <a href="/download/{{ item.path }}" class="file-link" target="_blank">
+                                <span class="file-icon">📄</span>
+                                <span class="file-name">{{ item.name }}</span>
+                            </a>
+                            {% endif %}
+                        </td>
+                        <td class="col-time">{{ item.modified }}</td>
+                        <td class="col-size">{{ item.size }}</td>
+                        <td class="col-action">
+                            {% if not item.is_dir %}
+                            <a href="/download/{{ item.path }}" class="download-btn" download>下载</a>
+                            {% else %}
+                            <a href="/download/{{ item.path }}" class="open-btn">打开</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
+        {% else %}
+        <p class="empty-message">当前目录为空</p>
+        {% endif %}
+
+        <a href="/" class="back-link">返回首页</a>
     </div>
 
-    <!-- 底部栏(与主页相同) -->
-    <footer class="footer">
-        <div class="footer-content">
-            <div class="copyright">Copyright © 2025 By <a href="/"><span>Kyrian</span></a></div>
+    <!-- 上传模态窗口 -->
+    <div id="uploadModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeUploadModal()">&times;</span>
+            <h2>上传文件</h2>
+            <form action="/upload" method="post" enctype="multipart/form-data" class="upload-form">
+                <div class="form-group">
+                    <label for="file" class="file-label">选择文件:</label>
+                    <input type="file" id="file" name="file" class="file-input" required>
+                </div>
+                <div class="form-group">
+                    <label for="secret_key" class="key-label">上传密钥:</label>
+                    <input type="password" id="secret_key" name="secret_key" class="key-input" required>
+                </div>
+                <button type="submit" class="upload-button">确认上传</button>
+            </form>
         </div>
-    </footer>
+    </div>
+</div>
+{% endblock %}
 
-    <script>
-        function openUploadModal() {
-            document.getElementById('uploadModal').style.display = 'block';
-        }
+{% block extra_js %}
+<script>
+    function openUploadModal() {
+        document.getElementById('uploadModal').style.display = 'block';
+    }
 
-        function closeUploadModal() {
-            document.getElementById('uploadModal').style.display = 'none';
-        }
+    function closeUploadModal() {
+        document.getElementById('uploadModal').style.display = 'none';
+    }
 
-        // 点击模态窗口外部关闭窗口
-        window.onclick = function (event) {
-            const modal = document.getElementById('uploadModal');
-            if (event.target == modal) {
-                closeUploadModal();
-            }
+    // 点击模态窗口外部关闭窗口
+    window.onclick = function (event) {
+        const modal = document.getElementById('uploadModal');
+        if (event.target == modal) {
+            closeUploadModal();
         }
-    </script>
-</body>
-</html>
+    }
+</script>
+{% endblock %}

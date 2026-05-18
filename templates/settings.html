@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}配置 - Kyrianの小站{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/settings.css">
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="settings-content">
+        <h2>系统配置</h2>
+        
+        <div class="settings-list">
+            <!-- water_token 配置项 -->
+            <div class="setting-item">
+                <div class="setting-header">
+                    <div class="setting-info">
+                        <h3>Water Token</h3>
+                        <p>桶装水API认证令牌</p>
+                    </div>
+                    <button class="edit-btn" data-key="water_token" data-title="Water Token" data-value="access_token={{ settings.get('water_token', '')|e }}" onclick="openEditModal(this)">编辑</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑弹窗 -->
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeEditModal()">&times;</span>
+        <h2 id="modalTitle">编辑配置</h2>
+        <input type="hidden" id="editKey">
+        <div class="form-group">
+            <label id="editLabel">值:</label>
+            <textarea id="editValue" class="edit-textarea" rows="6"></textarea>
+        </div>
+        <div class="modal-buttons">
+            <button class="btn-cancel" onclick="closeEditModal()">取消</button>
+            <button class="btn-save" onclick="saveSetting()">保存</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function openEditModal(btn) {
+        const key = btn.dataset.key;
+        const title = btn.dataset.title;
+        const value = btn.dataset.value;
+        document.getElementById('editKey').value = key;
+        document.getElementById('modalTitle').textContent = '编辑 ' + title;
+        document.getElementById('editLabel').textContent = title + ':';
+        document.getElementById('editValue').value = value;
+        document.getElementById('editModal').style.display = 'block';
+    }
+
+    function closeEditModal() {
+        document.getElementById('editModal').style.display = 'none';
+    }
+
+    function saveSetting() {
+        const key = document.getElementById('editKey').value;
+        let value = document.getElementById('editValue').value.trim();
+        
+        // water_token 去掉 access_token= 前缀
+        if (key === 'water_token' && value.startsWith('access_token=')) {
+            value = value.substring('access_token='.length);
+        }
+        
+        fetch('/api/settings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ [key]: value })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('保存成功');
+                location.reload();
+            } else {
+                alert('保存失败: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('请求失败: ' + error);
+        });
+    }
+
+    window.onclick = function(event) {
+        const modal = document.getElementById('editModal');
+        if (event.target == modal) {
+            closeEditModal();
+        }
+    }
+</script>
+{% endblock %}

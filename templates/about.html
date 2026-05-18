@@ -1,52 +1,29 @@
-<!DOCTYPE html>
-<html lang="zh">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>关于 - Kyrianの小站</title>
-    <link rel="stylesheet" href="/static/css/common.css">
-    <link rel="stylesheet" href="/static/css/about.css">
-</head>
-<body>
-    <div class="site-title">
-        <img src="/static/images/header-bg.png" alt="Header Background">
-        <h1>Kyrianの小站</h1>
-    </div>
+{% extends "base.html" %}
 
-    <div class="nav-bar">
-        <div class="nav-container">
-            <div class="nav-links">
-                <a href="/">主页</a>
-                <a href="../download">下载</a>
-                <a href="/about">关于</a>
-            </div>
+{% block title %}关于 - Kyrianの小站{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/about.css">
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="about-content">
+        <div class="about-section">
+            <h2>关于我们</h2>
+            <p>欢迎来到Kyrianの小站！这是一个充满热情和创意的网络空间，我们致力于为用户提供优质的服务和下载资源。在这里，您可以找到丰富的资源内容，享受便捷的下载体验。</p>
+        </div>
+        
+        <div class="about-section">
+            <h2>我们的使命</h2>
+            <p>我们的目标是创建一个友好、高效的平台，让用户能够轻松获取所需的资源。我们重视用户体验，不断改进我们的服务质量。通过持续的技术创新和服务优化，我们希望为每一位用户提供最好的使用体验。</p>
+        </div>
+        
+        <div class="about-section">
+            <h2>联系我们</h2>
+            <p>如果您有任何问题、建议或合作意向，请随时与我们联系。我们期待听到您的声音，您的反馈将帮助我们不断进步和改善。我们的技术支持团队将竭诚为您服务，确保您在使用过程中遇到的任何问题都能得到及时解决。</p>
+            <a href="/contact" class="button">联系我们</a>
         </div>
     </div>
-
-    <div class="main-container">
-        <div class="about-content">
-            <div class="about-section">
-                <h2>关于我们</h2>
-                <p>欢迎来到Kyrianの小站！这是一个充满热情和创意的网络空间，我们致力于为用户提供优质的服务和下载资源。在这里，您可以找到丰富的资源内容，享受便捷的下载体验。</p>
-            </div>
-            
-            <div class="about-section">
-                <h2>我们的使命</h2>
-                <p>我们的目标是创建一个友好、高效的平台，让用户能够轻松获取所需的资源。我们重视用户体验，不断改进我们的服务质量。通过持续的技术创新和服务优化，我们希望为每一位用户提供最好的使用体验。</p>
-            </div>
-            
-            <div class="about-section">
-                <h2>联系我们</h2>
-                <p>如果您有任何问题、建议或合作意向，请随时与我们联系。我们期待听到您的声音，您的反馈将帮助我们不断进步和改善。我们的技术支持团队将竭诚为您服务，确保您在使用过程中遇到的任何问题都能得到及时解决。</p>
-                <a href="/contact" class="button">联系我们</a>
-            </div>
-        </div>
-    </div>
-
-    <footer class="footer">
-        <div class="footer-content">
-            <div class="copyright">Copyright © 2025 By <a href="/"><span>Kyrian</span></a></div>
-        </div>
-    </footer>
-</body>
-</html>
+</div>
+{% endblock %}

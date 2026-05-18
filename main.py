@@ -1,6 +1,6 @@
 #main.py
 
-import requests
+import json, requests
 from datetime import datetime
 from flask import Flask, render_template, send_from_directory, abort, request, redirect, url_for, flash, jsonify
 from werkzeug.utils import secure_filename
@@ -9,15 +9,49 @@ from crawler.res import get_ticket_data
 
 app = Flask(__name__)
 DOWNLOAD_DIRECTORY = "download"  # 定义下载目录
+SETTING_FILE = "setting.json"  # 设置文件路径
 
-# 确保下载目录存在
-os.makedirs(DOWNLOAD_DIRECTORY, exist_ok=True)
+# 默认设置
+DEFAULT_SETTINGS = {
+    "water_token": ""
+}
+
+# 初始化应用（创建必要的目录和配置文件）
+def init_app():
+    os.makedirs(DOWNLOAD_DIRECTORY, exist_ok=True)
+    if not os.path.exists(SETTING_FILE):
+        save_settings(DEFAULT_SETTINGS)
+
+# 读取设置文件
+def load_settings():
+    try:
+        if os.path.exists(SETTING_FILE):
+            with open(SETTING_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        return {}
+    except Exception:
+        return {}
+
+# 保存设置文件
+def save_settings(settings):
+    try:
+        with open(SETTING_FILE, 'w', encoding='utf-8') as f:
+            json.dump(settings, f, ensure_ascii=False, indent=4)
+        return True
+    except Exception as e:
+        app.logger.error(f'保存设置错误: {str(e)}')
+        return False
+
+# 获取water_token（纯token）
+def get_water_token():
+    settings = load_settings()
+    return settings.get('water_token', '')
 
 
 #主页
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', current_page='index')
 
 
 ###/download下载页面
@@ -98,7 +132,7 @@ def list_directory(subpath=""):
         abort(404)
     
     items = list_directory_contents(full_path, safe_path)
-    return render_template('download.html', items=items, current_path=safe_path)
+    return render_template('download.html', items=items, current_path=safe_path, current_page='download')
 
 #下载文件
 @app.route('/download/<path:filepath>')
@@ -174,7 +208,7 @@ def upload_file():
 #关于页面
 @app.route('/about')
 def about():
-    return render_template('about.html')
+    return render_template('about.html', current_page='about')
 
 #工单数据API
 @app.route('/get_ticket_data')
@@ -197,6 +231,34 @@ def get_auth():
     return "OK"
 
 
+# 配置页面
+@app.route('/settings')
+def settings_page():
+    current_settings = load_settings()
+    return render_template('settings.html', settings=current_settings, current_page='settings')
+
+
+# 获取所有设置API
+@app.route('/api/settings')
+def get_settings():
+    return jsonify(load_settings())
+
+
+# 保存设置API
+@app.route('/api/settings', methods=['POST'])
+def update_settings():
+    try:
+        data = request.get_json()
+        current_settings = load_settings()
+        current_settings.update(data)
+        if save_settings(current_settings):
+            return jsonify({'success': True, 'message': '保存成功'})
+        return jsonify({'success': False, 'message': '保存失败'}), 500
+    except Exception as e:
+        app.logger.error(f'更新设置错误: {str(e)}')
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 # 桶装水数据API
 @app.route('/api/water')
 def get_water_data():
@@ -204,6 +266,13 @@ def get_water_data():
     try:
         # 获取查询日期，默认当天
         date_str = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+        water_token = get_water_token()
+        
+        if not water_token:
+            return jsonify({
+                'success': False,
+                'message': '未配置water_token'
+            }), 400
 
         url = (
             f"https://neighbor.4009515151.com/mephisto/merchant/itemorder/waitconfrim"
@@ -217,10 +286,10 @@ def get_water_data():
         headers = {
             "User-Agent": "VKStaffAssistant-Android-6.44.0-Mozilla/5.0 (Linux; Android 16; 2210132C Build/BP2A.250605.031.A3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/146.0.7680.164 Mobile Safari/537.36",
             "x-token-phone": "18085009482",
-            "x-token-auth": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJBQ0NFU1NfVE9LRU4iLCJjbGllbnRJZCI6ImJmOTcxOTZiN2YwZDRiODI4MzI2MTIyZDAyYjZhNTFiIiwic2NvcGUiOiJyLXN0YWZmIiwidG9rZW4iOiIxNzAyMDcxIiwiaWF0IjoxNzc3Nzk4ODg1LCJleHAiOjE3Nzg0MDM2ODV9.P3P8nKzFz7aoF0epzHmehbfpKgd7056EfUZSY2d1T4E",
+            "x-token-auth": water_token,
             "x-requested-with": "com.vanke.wyguide",
-            "referer": "https://neighbor.4009515151.com/andariel/water?at=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJBQ0NFU1NfVE9LRU4iLCJjbGllbnRJZCI6ImJmOTcxOTZiN2YwZDRiODI4MzI2MTIyZDAyYjZhNTFiIiwic2NvcGUiOiJyLXN0YWZmIiwidG9rZW4iOiIxNzAyMDcxIiwiaWF0IjoxNzc3Nzk4ODg1LCJleHAiOjE3Nzg0MDM2ODV9.P3P8nKzFz7aoF0epzHmehbfpKgd7056EfUZSY2d1T4E",
-            "Cookie": "tgw_l7_route=27ac1799876fd00610bcbaf4410a86af; access_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJBQ0NFU1NfVE9LRU4iLCJjbGllbnRJZCI6ImJmOTcxOTZiN2YwZDRiODI4MzI2MTIyZDAyYjZhNTFiIiwic2NvcGUiOiJyLXN0YWZmIiwidG9rZW4iOiIxNzAyMDcxIiwiaWF0IjoxNzc3Nzk4ODg1LCJleHAiOjE3Nzg0MDM2ODV9.P3P8nKzFz7aoF0epzHmehbfpKgd7056EfUZSY2d1T4E"
+            "referer": f"https://neighbor.4009515151.com/andariel/water?at={water_token}",
+            "Cookie": f"tgw_l7_route=27ac1799876fd00610bcbaf4410a86af; access_token={water_token}"
         }
 
         resp = requests.get(url, headers=headers, timeout=10)
@@ -284,5 +353,6 @@ def get_water_data():
 
 #启动
 if __name__ == "__main__":
+    init_app()  # 初始化应用
     app.secret_key = 'your-secret-key-here'  # 用于flash消息
     app.run(host="0.0.0.0", port=5000, debug=True)
