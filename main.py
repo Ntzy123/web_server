@@ -127,32 +127,16 @@ def list_directory(subpath=""):
     if not os.path.abspath(full_path).startswith(os.path.abspath(DOWNLOAD_DIRECTORY)):
         abort(403)
     
-    # 确保是目录
-    if not os.path.isdir(full_path):
-        abort(404)
+    # 如果是文件，直接下载
+    if os.path.isfile(full_path):
+        return send_from_directory(DOWNLOAD_DIRECTORY, safe_path, as_attachment=True)
     
-    items = list_directory_contents(full_path, safe_path)
-    return render_template('download.html', items=items, current_path=safe_path, current_page='download')
-
-#下载文件
-@app.route('/download/<path:filepath>')
-def download_file(filepath):
-    # 安全处理路径
-    safe_path = os.path.normpath(filepath)
-    if safe_path.startswith('..') or safe_path.startswith('/') or safe_path.startswith('\\'):
-        abort(403)
+    # 如果是目录，显示文件列表
+    if os.path.isdir(full_path):
+        items = list_directory_contents(full_path, safe_path)
+        return render_template('download.html', items=items, current_path=safe_path, current_page='download')
     
-    full_path = os.path.join(DOWNLOAD_DIRECTORY, safe_path)
-    
-    # 确保路径在下载目录内
-    if not os.path.abspath(full_path).startswith(os.path.abspath(DOWNLOAD_DIRECTORY)):
-        abort(403)
-    
-    # 确保是文件
-    if not os.path.isfile(full_path):
-        abort(404)
-    
-    return send_from_directory(DOWNLOAD_DIRECTORY, safe_path, as_attachment=True)
+    abort(404)
 
 
 
