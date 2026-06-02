@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}下载 - Kyrianの小站{% endblock %}
 
@@ -50,7 +50,7 @@
                     <tr>
                         <th class="col-name">文件名</th>
                         <th class="col-time">修改时间</th>
-                        <th class="col-size">大小</th>
+                        <th class="col-size">文件大小</th>
                         <th class="col-action">操作</th>
                     </tr>
                 </thead>
@@ -73,12 +73,18 @@
                             {% if item.is_dir %}
                             <a href="/download/{{ item.path }}" class="folder-link">
                                 <span class="file-icon">📁</span>
-                                <span class="file-name">{{ item.name }}</span>
+                                <span class="file-text-block">
+                                    <span class="file-name">{{ item.name }}</span>
+                                    <span class="file-meta-mobile">{{ item.modified }} | {{ item.size }}</span>
+                                </span>
                             </a>
                             {% else %}
                             <a href="/download/{{ item.path }}" class="file-link" target="_blank">
                                 <span class="file-icon">📄</span>
-                                <span class="file-name">{{ item.name }}</span>
+                                <span class="file-text-block">
+                                    <span class="file-name">{{ item.name }}</span>
+                                    <span class="file-meta-mobile">{{ item.modified }} | {{ item.size }}</span>
+                                </span>
                             </a>
                             {% endif %}
                         </td>

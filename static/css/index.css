@@ -58,15 +58,10 @@
     margin-top: 40px;
 }
 
-.download-btn {
+.download-section .download-btn {
     display: inline-block;
     padding: 15px 40px;
-    background: linear-gradient(
-        135deg,
-        #ff8a6b 0%,
-        #ff6f40 50%,
-        #ff8a6b 100%
-    );
+    background: linear-gradient(135deg, #ff8a6b 0%, #ff6f40 50%, #ff8a6b 100%);
     color: white;
     text-decoration: none;
     border-radius: 30px;
@@ -79,18 +74,13 @@
     overflow: hidden;
 }
 
-.download-btn:hover {
+.download-section .download-btn:hover {
     transform: translateY(-3px);
     box-shadow: 0 6px 20px rgba(255, 138, 107, 0.6);
-    background: linear-gradient(
-        135deg,
-        #ff7a5b 0%,
-        #ff5f30 50%,
-        #ff7a5b 100%
-    );
+    background: linear-gradient(135deg, #ff7a5b 0%, #ff5f30 50%, #ff7a5b 100%);
 }
 
-.download-btn:active {
+.download-section .download-btn:active {
     transform: translateY(-1px);
 }
 
@@ -148,4 +138,96 @@
     color: #666;
     font-size: 1rem;
     padding: 5px 0;
+}
+
+/* ===== 移动端适配 ===== */
+@media (max-width: 992px) {
+    .main-container {
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .sidebar {
+        width: 100%;
+    }
+}
+
+@media (max-width: 768px) {
+    .main-container {
+        padding: 0 15px;
+        margin-top: 15px;
+        gap: 15px;
+    }
+
+    .content-area {
+        padding: 20px;
+    }
+
+    .welcome-text {
+        font-size: 1rem;
+        margin-bottom: 20px;
+    }
+
+    .feature-item {
+        padding: 18px;
+    }
+
+    .feature-item h3 {
+        font-size: 1.1rem;
+    }
+
+    .feature-item p {
+        font-size: 0.95rem;
+    }
+
+    .download-section .download-btn {
+        padding: 12px 30px;
+        font-size: 1rem;
+    }
+
+    .ticket-window {
+        padding: 18px;
+    }
+}
+
+@media (max-width: 480px) {
+    .content-area {
+        padding: 15px;
+        border-radius: 10px;
+    }
+
+    .welcome-text {
+        font-size: 0.9rem;
+        line-height: 1.6;
+    }
+
+    .feature-item {
+        padding: 14px;
+        margin-bottom: 12px;
+    }
+
+    .feature-item h3 {
+        font-size: 1rem;
+    }
+
+    .feature-item p {
+        font-size: 0.85rem;
+    }
+
+    .download-section {
+        margin-top: 25px;
+    }
+
+    .download-section .download-btn {
+        padding: 10px 24px;
+        font-size: 0.9rem;
+    }
+
+    .ticket-window h2 {
+        font-size: 1.2rem;
+    }
+
+    .ticket-row {
+        padding: 10px;
+    }
 }
