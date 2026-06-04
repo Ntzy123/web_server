@@ -155,3 +155,195 @@
 .btn-save:hover {
     background: #40a9ff;
 }
+/* ===== WBTools Version Modal ===== */
+.version-modal-content {
+    max-width: 650px;
+    min-height: 400px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.version-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.version-header h2 {
+    flex: 1;
+    margin: 0;
+    font-size: 18px;
+}
+
+.back-btn {
+    background: none;
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+    padding: 0 5px;
+    color: #666;
+    line-height: 1;
+}
+
+.back-btn:hover {
+    color: #333;
+}
+
+.version-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-icon {
+    width: 32px;
+    height: 32px;
+    border: 1px solid #ddd;
+    background: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    color: #333;
+}
+
+.btn-icon:hover {
+    border-color: #1890ff;
+    color: #1890ff;
+}
+
+.btn-delete:hover {
+    border-color: #ff4d4f;
+    color: #ff4d4f;
+}
+
+.version-list-view {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 200px;
+}
+
+.version-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.version-item {
+    background: #fafafa;
+    border: 1px solid #eee;
+    border-radius: 6px;
+    padding: 12px 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.version-item:hover {
+    border-color: #1890ff;
+    background: #f0f8ff;
+}
+
+.version-item.selected {
+    border-color: #1890ff;
+    background: #e6f7ff;
+}
+
+.version-item-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.version-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #333;
+}
+
+.version-code {
+    font-size: 12px;
+    color: #999;
+    background: #f0f0f0;
+    padding: 1px 6px;
+    border-radius: 3px;
+}
+
+.force-tag {
+    font-size: 11px;
+    color: #ff4d4f;
+    background: #fff2f0;
+    border: 1px solid #ffccc7;
+    padding: 0 5px;
+    border-radius: 3px;
+    margin-left: auto;
+}
+
+.version-desc {
+    font-size: 13px;
+    color: #888;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    margin-bottom: 4px;
+}
+
+.version-time {
+    font-size: 11px;
+    color: #bbb;
+}
+
+.version-edit-view {
+    flex: 1;
+}
+
+.form-input, .form-textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+
+.form-input:focus, .form-textarea:focus {
+    outline: none;
+    border-color: #1890ff;
+}
+
+.form-textarea {
+    resize: vertical;
+    font-family: inherit;
+}
+
+.checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.required {
+    color: #ff4d4f;
+}
+
+.empty-tip {
+    text-align: center;
+    color: #999;
+    padding: 60px 20px;
+    font-size: 14px;
+}

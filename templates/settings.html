@@ -22,6 +22,16 @@
                     <button class="edit-btn" data-key="water_token" data-title="Water Token" data-value="access_token={{ settings.get('water_token', '')|e }}" onclick="openEditModal(this)">编辑</button>
                 </div>
             </div>
+            <!-- WBTools Version -->
+            <div class="setting-item">
+                <div class="setting-header">
+                    <div class="setting-info">
+                        <h3>WBTools Version</h3>
+                        <p>WBTools 版本管理</p>
+                    </div>
+                    <button class="edit-btn" onclick="versionManager.open()">编辑</button>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -39,6 +49,53 @@
         <div class="modal-buttons">
             <button class="btn-cancel" onclick="closeEditModal()">取消</button>
             <button class="btn-save" onclick="saveSetting()">保存</button>
+        </div>
+    </div>
+</div>
+<!-- WBTools 版本管理弹窗 -->
+<div id="versionModal" class="modal">
+    <div class="modal-content version-modal-content">
+        <span class="close" onclick="versionManager.close()">&times;</span>
+        <div class="version-header">
+            <button id="backBtn" class="back-btn" onclick="versionManager.backToList()" style="display:none;">&#8592;</button>
+            <h2 id="versionModalTitle">WBTools 版本管理</h2>
+            <div class="version-actions" id="versionActions">
+                <button class="btn-icon" onclick="versionManager.addNew()" title="新增">+</button>
+                <button class="btn-icon btn-delete" onclick="versionManager.confirmDelete()" title="删除">&#128465;</button>
+            </div>
+        </div>
+        <div id="versionListView" class="version-list-view">
+            <div id="versionList" class="version-list"></div>
+            <div class="empty-tip" id="versionEmptyTip" style="display:none;">暂无版本记录</div>
+        </div>
+        <div id="versionEditView" class="version-edit-view" style="display:none;">
+            <div class="form-group">
+                <label>Version Code <span class="required">*</span></label>
+                <input type="number" id="formVersionCode" class="form-input" min="1" step="1">
+            </div>
+            <div class="form-group">
+                <label>Version Name <span class="required">*</span></label>
+                <input type="text" id="formVersionName" class="form-input">
+            </div>
+            <div class="form-group">
+                <label>Update Description</label>
+                <textarea id="formUpdateDesc" class="form-textarea" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Download URL</label>
+                <input type="url" id="formDownloadUrl" class="form-input" placeholder="https://...">
+            </div>
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="formForceUpdate">
+                    <span>强制更新</span>
+                </label>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-cancel" onclick="versionManager.backToList()">取消</button>
+                <button class="btn-save" onclick="versionManager.saveVersion()">保存</button>
+            </div>
+            <input type="hidden" id="formEditId" value="">
         </div>
     </div>
 </div>
@@ -96,6 +153,213 @@
         if (event.target == modal) {
             closeEditModal();
         }
+        const versionModal = document.getElementById('versionModal');
+        if (event.target == versionModal) {
+            versionManager.close();
+        }
     }
+    
+    // ========== WBTools Version Manager ==========
+    const versionManager = {
+        currentView: 'list',
+        versions: [],
+        selectedVersionId: null,
+        editingVersion: null,
+        scrollPosition: 0,
+
+        open() {
+            this.loadVersions(() => {
+                this.switchView('list');
+                document.getElementById('versionModal').style.display = 'block';
+            });
+        },
+
+        close() {
+            document.getElementById('versionModal').style.display = 'none';
+        },
+
+        loadVersions(callback) {
+            fetch('/api/wbtools_version')
+                .then(res => res.json())
+                .then(data => {
+                    this.versions = data;
+                    if (callback) callback();
+                })
+                .catch(err => {
+                    alert('获取版本列表失败: ' + err);
+                });
+        },
+
+        switchView(view) {
+            this.currentView = view;
+            if (view === 'list') {
+                document.getElementById('versionListView').style.display = '';
+                document.getElementById('versionEditView').style.display = 'none';
+                document.getElementById('backBtn').style.display = 'none';
+                document.getElementById('versionActions').style.display = '';
+                document.getElementById('versionModalTitle').textContent = 'WBTools 版本管理';
+                this.renderList();
+            } else {
+                document.getElementById('versionListView').style.display = 'none';
+                document.getElementById('versionEditView').style.display = '';
+                document.getElementById('backBtn').style.display = '';
+                document.getElementById('versionActions').style.display = 'none';
+                document.getElementById('versionModalTitle').textContent = this.editingVersion ? '编辑版本' : '新增版本';
+            }
+        },
+
+        backToList() {
+            if (this.currentView === 'edit') {
+                const listEl = document.getElementById('versionList');
+                this.scrollPosition = listEl.scrollTop;
+                this.switchView('list');
+            }
+        },
+
+        renderList() {
+            const container = document.getElementById('versionList');
+            const emptyTip = document.getElementById('versionEmptyTip');
+            if (this.versions.length === 0) {
+                container.innerHTML = '';
+                emptyTip.style.display = '';
+                return;
+            }
+            emptyTip.style.display = 'none';
+            container.innerHTML = this.versions.map(v => {
+                const desc = (v.updateDesc || '');
+                const escapedDesc = desc.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;').replace(/"/g,'&#34;');
+                const escapedName = (v.versionName || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;').replace(/"/g,'&#34;');
+                const selected = this.selectedVersionId === v.id ? ' selected' : '';
+                return '<div class="version-item' + selected + '" onclick="versionManager.selectVersion(' + v.id + ')" ondblclick="versionManager.editVersion(' + v.id + ')">' +
+                    '<div class="version-item-header">' +
+                        '<span class="version-name">' + escapedName + '</span>' +
+                        '<span class="version-code">v' + v.versionCode + '</span>' +
+                        (v.forceUpdate ? '<span class="force-tag">强制更新</span>' : '') +
+                    '</div>' +
+                    '<div class="version-desc" title="' + escapedDesc + '">' + escapedDesc + '</div>' +
+                    '<div class="version-time">' + (v.updatedAt || v.createdAt || '') + '</div>' +
+                '</div>';
+            }).join('');
+        },
+
+        selectVersion(id) {
+            if (this.selectedVersionId === id) {
+                this.editVersion(id);
+                return;
+            }
+            this.selectedVersionId = id;
+            this.renderList();
+        },
+
+        editVersion(id) {
+            const version = this.versions.find(v => v.id === id);
+            if (!version) return;
+            this.editingVersion = version;
+            this.populateForm(version);
+            this.switchView('edit');
+        },
+
+        addNew() {
+            this.editingVersion = null;
+            this.clearForm();
+            this.switchView('edit');
+        },
+
+        populateForm(version) {
+            document.getElementById('formEditId').value = version.id;
+            document.getElementById('formVersionCode').value = version.versionCode;
+            document.getElementById('formVersionName').value = version.versionName;
+            document.getElementById('formUpdateDesc').value = version.updateDesc || '';
+            document.getElementById('formDownloadUrl').value = version.downloadUrl || '';
+            document.getElementById('formForceUpdate').checked = version.forceUpdate;
+        },
+
+        clearForm() {
+            document.getElementById('formEditId').value = '';
+            document.getElementById('formVersionCode').value = '';
+            document.getElementById('formVersionName').value = '';
+            document.getElementById('formUpdateDesc').value = '';
+            document.getElementById('formDownloadUrl').value = '';
+            document.getElementById('formForceUpdate').checked = false;
+        },
+
+        validateForm() {
+            const vc = parseInt(document.getElementById('formVersionCode').value);
+            if (!vc || vc < 1 || !Number.isInteger(vc)) {
+                alert('Version Code 必须为正整数');
+                return false;
+            }
+            const name = document.getElementById('formVersionName').value.trim();
+            if (!name) {
+                alert('Version Name 不能为空');
+                return false;
+            }
+            const url = document.getElementById('formDownloadUrl').value.trim();
+            if (url && !/^https?:\/\/.+/.test(url)) {
+                alert('Download URL 格式不正确');
+                return false;
+            }
+            return true;
+        },
+
+        saveVersion() {
+            if (!this.validateForm()) return;
+
+            const data = {
+                versionCode: parseInt(document.getElementById('formVersionCode').value),
+                versionName: document.getElementById('formVersionName').value.trim(),
+                updateDesc: document.getElementById('formUpdateDesc').value.trim(),
+                downloadUrl: document.getElementById('formDownloadUrl').value.trim(),
+                forceUpdate: document.getElementById('formForceUpdate').checked
+            };
+
+            const editId = document.getElementById('formEditId').value;
+            const isUpdate = editId !== '';
+            const url = isUpdate ? '/api/wbtools_version/' + editId : '/api/wbtools_version';
+            const method = isUpdate ? 'PUT' : 'POST';
+
+            fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(res => {
+                if (!res.ok) return res.json().then(e => { throw new Error(e.error); });
+                return res.json();
+            })
+            .then(() => {
+                return this.loadVersions(() => {
+                    this.selectedVersionId = null;
+                    this.scrollPosition = 0;
+                    this.switchView('list');
+                });
+            })
+            .catch(err => {
+                alert('保存失败: ' + err.message);
+            });
+        },
+
+        confirmDelete() {
+            if (!this.selectedVersionId) {
+                alert('请先选择一个版本');
+                return;
+            }
+            if (!confirm('确定删除该版本吗？此操作不可撤销。')) return;
+
+            fetch('/api/wbtools_version/' + this.selectedVersionId, {
+                method: 'DELETE'
+            })
+            .then(res => {
+                if (!res.ok && res.status !== 204) return res.json().then(e => { throw new Error(e.error); });
+                return this.loadVersions(() => {
+                    this.selectedVersionId = null;
+                    this.renderList();
+                });
+            })
+            .catch(err => {
+                alert('删除失败: ' + err.message);
+            });
+        }
+    };
 </script>
 {% endblock %}

@@ -3,6 +3,7 @@
 import json, requests
 from datetime import datetime
 from flask import Flask, render_template, send_from_directory, abort, request, redirect, url_for, flash, jsonify
+from urllib.parse import urlparse
 from werkzeug.utils import secure_filename
 import os
 from crawler.res import get_ticket_data
@@ -46,6 +47,52 @@ def save_settings(settings):
 def get_water_token():
     settings = load_settings()
     return settings.get('water_token', '')
+
+# ========== WBTools Version Management ==========
+
+def _generate_version_id(versions):
+    if not versions:
+        return 1
+    return max(v['id'] for v in versions) + 1
+
+
+def get_wbtools_versions():
+    settings = load_settings()
+    return settings.get('wbtools_versions', [])
+
+
+def save_wbtools_versions(versions):
+    settings = load_settings()
+    settings['wbtools_versions'] = versions
+    return save_settings(settings)
+
+
+def _is_valid_url(url):
+    try:
+        result = urlparse(url)
+        return all([result.scheme in ('http', 'https'), result.netloc])
+    except:
+        return False
+
+
+def validate_version_data(data, is_update=False):
+    errors = []
+    if not is_update or 'versionCode' in data:
+        vc = data.get('versionCode')
+        if vc is None or not isinstance(vc, int) or vc < 1:
+            errors.append('versionCode 必须为正整数')
+    if not is_update or 'versionName' in data:
+        vn = data.get('versionName')
+        if not vn or not isinstance(vn, str) or not vn.strip():
+            errors.append('versionName 不能为空')
+    if not is_update or 'downloadUrl' in data:
+        url = data.get('downloadUrl', '')
+        if url and not _is_valid_url(url):
+            errors.append('downloadUrl 格式不正确')
+    return errors
+
+
+# ===================================================================
 
 
 #主页
@@ -333,6 +380,111 @@ def get_water_data():
             'success': False,
             'message': f'服务器错误: {str(e)}'
         }), 500
+
+
+# ========== WBTools Version API ==========
+
+
+@app.route('/api/wbtools_version', methods=['GET'])
+def list_wbtools_versions():
+    versions = get_wbtools_versions()
+    sort = request.args.get('sort', 'versionCode,desc')
+    if sort == 'versionCode,asc':
+        versions.sort(key=lambda x: x['versionCode'])
+    else:
+        versions.sort(key=lambda x: x['versionCode'], reverse=True)
+    return jsonify(versions)
+
+
+@app.route('/api/wbtools_version/latest', methods=['GET'])
+def get_latest_wbtools_version():
+    versions = get_wbtools_versions()
+    if not versions:
+        return jsonify({'error': '暂无版本记录'}), 404
+    latest = max(versions, key=lambda x: x['versionCode'])
+    return jsonify(latest)
+
+
+@app.route('/api/wbtools_version', methods=['POST'])
+def create_wbtools_version():
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': '请求体不能为空'}), 400
+
+    errors = validate_version_data(data)
+    if errors:
+        return jsonify({'error': '; '.join(errors)}), 400
+
+    versions = get_wbtools_versions()
+
+    vc = data['versionCode']
+    if any(v['versionCode'] == vc for v in versions):
+        return jsonify({'error': f'versionCode {vc} 已存在'}), 409
+
+    now = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+    new_version = {
+        'id': _generate_version_id(versions),
+        'versionCode': vc,
+        'versionName': data['versionName'],
+        'forceUpdate': data.get('forceUpdate', False),
+        'updateDesc': data.get('updateDesc', ''),
+        'downloadUrl': data.get('downloadUrl', ''),
+        'createdAt': now,
+        'updatedAt': now
+    }
+
+    versions.append(new_version)
+    save_wbtools_versions(versions)
+
+    return jsonify(new_version), 201
+
+
+@app.route('/api/wbtools_version/<int:version_id>', methods=['PUT'])
+def update_wbtools_version(version_id):
+    versions = get_wbtools_versions()
+    version = next((v for v in versions if v['id'] == version_id), None)
+    if not version:
+        return jsonify({'error': '版本不存在'}), 404
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': '请求体不能为空'}), 400
+
+    if 'versionCode' in data:
+        vc = data['versionCode']
+        if vc != version['versionCode']:
+            if any(v['versionCode'] == vc for v in versions):
+                return jsonify({'error': f'versionCode {vc} 已存在'}), 409
+
+    errors = validate_version_data(data, is_update=True)
+    if errors:
+        return jsonify({'error': '; '.join(errors)}), 400
+
+    for key in ['versionCode', 'versionName', 'forceUpdate', 'updateDesc', 'downloadUrl']:
+        if key in data:
+            version[key] = data[key]
+
+    version['updatedAt'] = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+
+    save_wbtools_versions(versions)
+
+    return jsonify(version), 200
+
+
+@app.route('/api/wbtools_version/<int:version_id>', methods=['DELETE'])
+def delete_wbtools_version(version_id):
+    versions = get_wbtools_versions()
+    version = next((v for v in versions if v['id'] == version_id), None)
+    if not version:
+        return jsonify({'error': '版本不存在'}), 404
+
+    versions = [v for v in versions if v['id'] != version_id]
+    save_wbtools_versions(versions)
+
+    return '', 204
+
+
+# ===================================================================
 
 
 #启动
