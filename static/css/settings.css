@@ -347,3 +347,78 @@
     padding: 60px 20px;
     font-size: 14px;
 }
+
+/* ===== 管理员按钮 ===== */
+.settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.settings-header h2 {
+    margin: 0;
+}
+
+.admin-btn {
+    background: transparent;
+    color: #666;
+    border: 1px solid transparent;
+    padding: 7px 22px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.25s;
+    white-space: nowrap;
+    height: fit-content;
+    letter-spacing: 0.5px;
+}
+
+.admin-btn:hover {
+    color: #1890ff;
+    border-color: #1890ff;
+    background: #f0f8ff;
+}
+
+.admin-btn.admin-active {
+    background: #52c41a;
+    color: #fff;
+    border-color: #52c41a;
+}
+
+.admin-btn.admin-active:hover {
+    background: #73d13d;
+    border-color: #73d13d;
+}
+
+/* 编辑按钮禁用状态 */
+.edit-btn:disabled {
+    background: #d9d9d9;
+    color: #999;
+    cursor: not-allowed;
+}
+
+.edit-btn:disabled:hover {
+    background: #d9d9d9;
+}
+
+/* 管理员登录模态框 */
+.admin-modal-content {
+    max-width: 400px;
+}
+
+.admin-modal-desc {
+    color: #888;
+    font-size: 14px;
+    margin-bottom: 15px;
+}
+
+.admin-error {
+    background: #fff2f0;
+    border: 1px solid #ffccc7;
+    color: #ff4d4f;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    margin-bottom: 15px;
+}

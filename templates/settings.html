@@ -9,7 +9,10 @@
 {% block content %}
 <div class="main-container">
     <div class="settings-content">
-        <h2>系统配置</h2>
+        <div class="settings-header">
+            <h2>系统配置</h2>
+            <button class="admin-btn" onclick="openAdminModal()">管理员</button>
+        </div>
         
         <div class="settings-list">
             <!-- water_token 配置项 -->
@@ -19,7 +22,7 @@
                         <h3>Water Token</h3>
                         <p>桶装水API认证令牌</p>
                     </div>
-                    <button class="edit-btn" data-key="water_token" data-title="Water Token" data-value="access_token={{ settings.get('water_token', '')|e }}" onclick="openEditModal(this)">编辑</button>
+                    <button class="edit-btn" data-key="water_token" data-title="Water Token" data-value="access_token={{ settings.get('water_token', '')|e }}" disabled onclick="openEditModal(this)">编辑</button>
                 </div>
             </div>
             <!-- WBTools Version -->
@@ -149,13 +152,17 @@
     }
 
     window.onclick = function(event) {
-        const modal = document.getElementById('editModal');
-        if (event.target == modal) {
+        const editModal = document.getElementById('editModal');
+        if (event.target == editModal) {
             closeEditModal();
         }
         const versionModal = document.getElementById('versionModal');
         if (event.target == versionModal) {
             versionManager.close();
+        }
+        const adminModal = document.getElementById('adminModal');
+        if (event.target == adminModal) {
+            closeAdminModal();
         }
     }
     
@@ -362,4 +369,123 @@
         }
     };
 </script>
+
+
+<script>
+    // ========== 管理员认证 ==========
+    let isAdmin = false;
+
+    function openAdminModal() {
+        if (isAdmin) {
+            document.getElementById('adminModalTitle').textContent = '退出管理员模式';
+            document.getElementById('adminModalDesc').textContent = '确定退出管理员模式吗？退出后将失去编辑权限。';
+            document.getElementById('adminKeyGroup').style.display = 'none';
+            document.getElementById('adminError').style.display = 'none';
+            document.getElementById('adminConfirmBtn').textContent = '确认退出';
+            document.getElementById('adminConfirmBtn').onclick = adminLogout;
+        } else {
+            document.getElementById('adminModalTitle').textContent = '管理员验证';
+            document.getElementById('adminModalDesc').textContent = '请输入管理员密钥以获取编辑权限';
+            document.getElementById('adminKeyGroup').style.display = '';
+            document.getElementById('adminKeyInput').value = '';
+            document.getElementById('adminError').style.display = 'none';
+            document.getElementById('adminConfirmBtn').textContent = '确认';
+            document.getElementById('adminConfirmBtn').onclick = adminLogin;
+        }
+        document.getElementById('adminModal').style.display = 'block';
+        if (!isAdmin) {
+            setTimeout(function() { document.getElementById('adminKeyInput').focus(); }, 100);
+        }
+    }
+
+    function closeAdminModal() {
+        document.getElementById('adminModal').style.display = 'none';
+    }
+
+    function adminLogin() {
+        const key = document.getElementById('adminKeyInput').value.trim();
+        if (!key) {
+            showAdminError('请输入密钥');
+            return;
+        }
+        fetch('/api/admin/auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key: key })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                closeAdminModal();
+                isAdmin = true;
+                updateEditButtons();
+            } else {
+                showAdminError(data.message || '验证失败');
+            }
+        })
+        .catch(err => {
+            showAdminError('请求失败: ' + err);
+        });
+    }
+
+    function adminLogout() {
+        fetch('/api/admin/logout', { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                isAdmin = false;
+                updateEditButtons();
+                closeAdminModal();
+            }
+        })
+        .catch(function() {});
+    }
+
+    function showAdminError(msg) {
+        const el = document.getElementById('adminError');
+        el.textContent = msg;
+        el.style.display = '';
+    }
+
+    function updateEditButtons() {
+        const btns = document.querySelectorAll('.edit-btn');
+        btns.forEach(function(btn) {
+            btn.disabled = !isAdmin;
+        });
+        const adminBtn = document.querySelector('.admin-btn');
+        if (adminBtn) {
+            adminBtn.textContent = '管理员';
+            adminBtn.classList.toggle('admin-active', isAdmin);
+        }
+    }
+
+    function checkAdminStatus() {
+        fetch('/api/admin/check')
+            .then(res => res.json())
+            .then(data => {
+                isAdmin = data.is_admin;
+                updateEditButtons();
+            })
+            .catch(function() {});
+    }
+
+    document.addEventListener('DOMContentLoaded', checkAdminStatus);
+</script>
+
+<!-- 管理员验证模态框 -->
+<div id="adminModal" class="modal">
+    <div class="modal-content admin-modal-content">
+        <span class="close" onclick="closeAdminModal()">&times;</span>
+        <h2 id="adminModalTitle">管理员验证</h2>
+        <p id="adminModalDesc" class="admin-modal-desc">请输入管理员密钥以获取编辑权限</p>
+        <div id="adminKeyGroup" class="form-group">
+            <input type="password" id="adminKeyInput" class="form-input" placeholder="请输入密钥" onkeydown="if(event.key==='Enter')adminLogin()">
+        </div>
+        <div id="adminError" class="admin-error" style="display:none;"></div>
+        <div class="modal-buttons">
+            <button class="btn-cancel" onclick="closeAdminModal()">取消</button>
+            <button id="adminConfirmBtn" class="btn-save" onclick="adminLogin()">确认</button>
+        </div>
+    </div>
+</div>
 {% endblock %}

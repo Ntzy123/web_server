@@ -1,7 +1,8 @@
 #main.py
 
 import json, requests
-from datetime import datetime
+import uuid
+from datetime import datetime, timezone
 from flask import Flask, render_template, send_from_directory, abort, request, redirect, url_for, flash, jsonify
 from urllib.parse import urlparse
 from werkzeug.utils import secure_filename
@@ -12,6 +13,9 @@ app = Flask(__name__)
 DOWNLOAD_DIRECTORY = "download"  # 定义下载目录
 SETTING_FILE = "setting.json"  # 设置文件路径
 
+CACHE_DIR = "cache"
+ADMIN_COOKIE_FILE = os.path.join(CACHE_DIR, "admin_cookies.json")
+
 # 默认设置
 DEFAULT_SETTINGS = {
     "water_token": ""
@@ -20,8 +24,13 @@ DEFAULT_SETTINGS = {
 # 初始化应用（创建必要的目录和配置文件）
 def init_app():
     os.makedirs(DOWNLOAD_DIRECTORY, exist_ok=True)
+    os.makedirs(CACHE_DIR, exist_ok=True)
     if not os.path.exists(SETTING_FILE):
         save_settings(DEFAULT_SETTINGS)
+    # 检测 secret_key.txt，不存在则创建，默认写入 kyrian
+    if not os.path.exists('secret_key.txt'):
+        with open('secret_key.txt', 'w', encoding='utf-8') as f:
+            f.write('kyrian')
 
 # 读取设置文件
 def load_settings():
@@ -47,6 +56,27 @@ def save_settings(settings):
 def get_water_token():
     settings = load_settings()
     return settings.get('water_token', '')
+
+# ========== Admin Cookie Management ==========
+
+def load_admin_cookies():
+    try:
+        if os.path.exists(ADMIN_COOKIE_FILE):
+            with open(ADMIN_COOKIE_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        return []
+    except Exception:
+        return []
+
+
+def save_admin_cookies(cookies):
+    try:
+        with open(ADMIN_COOKIE_FILE, 'w', encoding='utf-8') as f:
+            json.dump(cookies, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception as e:
+        app.logger.error(f'保存管理员Cookie错误: {str(e)}')
+        return False
 
 # ========== WBTools Version Management ==========
 
@@ -483,6 +513,58 @@ def delete_wbtools_version(version_id):
 
     return '', 204
 
+
+# ===================================================================
+# ========== Admin Auth API ==========
+
+@app.route('/api/admin/auth', methods=['POST'])
+def admin_auth():
+    """验证管理员密钥，生成并返回cookie token"""
+    data = request.get_json()
+    provided_key = data.get('key', '')
+    secret_key = get_secret_key()
+    if not secret_key:
+        return jsonify({'success': False, 'message': '服务器未配置密钥'}), 500
+    if provided_key != secret_key:
+        return jsonify({'success': False, 'message': '密钥错误'}), 403
+
+    # 生成唯一token
+    token = str(uuid.uuid4())
+    cookies = load_admin_cookies()
+    now_str = datetime.now(timezone.utc).isoformat()
+    cookies.append({'token': token, 'created_at': now_str})
+
+    # 超过10个时移除最早的一条
+    if len(cookies) > 10:
+        cookies.sort(key=lambda c: c.get('created_at', ''))
+        cookies = cookies[-10:]
+
+    save_admin_cookies(cookies)
+
+    response = jsonify({'success': True, 'token': token})
+    response.set_cookie('admin_token', token, max_age=7 * 24 * 3600)
+    return response
+
+
+@app.route('/api/admin/check')
+def admin_check():
+    """检查当前请求的管理员cookie是否有效"""
+    token = request.cookies.get('admin_token', '')
+    if not token:
+        return jsonify({'is_admin': False})
+    cookies = load_admin_cookies()
+    is_valid = any(c['token'] == token for c in cookies)
+    return jsonify({'is_admin': is_valid})
+
+
+@app.route('/api/admin/logout', methods=['POST'])
+def admin_logout():
+    """移除当前cookie，退出管理员模式"""
+    token = request.cookies.get('admin_token', '')
+    cookies = load_admin_cookies()
+    cookies = [c for c in cookies if c['token'] != token]
+    save_admin_cookies(cookies)
+    return jsonify({'success': True})
 
 # ===================================================================
 
