@@ -1,7 +1,7 @@
 #main.py
 
 import json, requests
-import uuid
+import uuid, zoneinfo
 from datetime import datetime, timezone
 from flask import Flask, render_template, send_from_directory, abort, request, redirect, url_for, flash, jsonify
 from urllib.parse import urlparse
@@ -170,7 +170,10 @@ def list_directory_contents(directory, base_path=""):
             # 文件
             try:
                 stat = os.stat(full_path)
-                modified_time = datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+                # 将文件时间戳转换为北京时间 (UTC+8)
+                utc_dt = datetime.fromtimestamp(stat.st_mtime, tz=zoneinfo.ZoneInfo("UTC"))
+                shanghai_dt = utc_dt.astimezone(zoneinfo.ZoneInfo("Asia/Shanghai"))
+                modified_time = shanghai_dt.strftime('%Y-%m-%d %H:%M:%S')
                 size = stat.st_size
             except (PermissionError, OSError):
                 modified_time = '未知'
@@ -574,3 +577,4 @@ if __name__ == "__main__":
     init_app()  # 初始化应用
     app.secret_key = 'your-secret-key-here'  # 用于flash消息
     app.run(host="0.0.0.0", port=5000, debug=True)
+
