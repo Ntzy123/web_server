@@ -114,17 +114,39 @@
         <div class="modal-content">
             <span class="close" onclick="closeUploadModal()">&times;</span>
             <h2>上传文件</h2>
-            <form action="/upload" method="post" enctype="multipart/form-data" class="upload-form">
+            <div class="upload-form">
                 <div class="form-group">
                     <label for="file" class="file-label">选择文件:</label>
-                    <input type="file" id="file" name="file" class="file-input" required>
+                    <input type="file" id="file" name="file" class="file-input" required onchange="onFileSelected()">
+                    <div id="fileInfo" class="file-info"></div>
                 </div>
                 <div class="form-group">
                     <label for="secret_key" class="key-label">上传密钥:</label>
                     <input type="password" id="secret_key" name="secret_key" class="key-input" required>
                 </div>
-                <button type="submit" class="upload-button">确认上传</button>
-            </form>
+                <button id="uploadBtn" class="upload-button" onclick="startUpload()" disabled>确认上传</button>
+            </div>
+            <!-- 进度条 -->
+            <div id="uploadProgress" class="upload-progress" style="display:none;">
+                <div class="progress-bar-bg">
+                    <div id="progressBar" class="progress-bar-fill" style="width:0%"></div>
+                </div>
+                <div id="progressText" class="progress-text">0%</div>
+                <div id="progressDetail" class="progress-detail"></div>
+            </div>
+            <div id="uploadStatus" class="upload-status"></div>
+        </div>
+    </div>
+
+    <!-- 覆盖确认弹窗 -->
+    <div id="overwriteModal" class="modal">
+        <div class="modal-content overwrite-modal-content">
+            <h2>文件已存在</h2>
+            <p class="overwrite-desc">文件「<span id="overwriteFileName"></span>」已存在，是否覆盖？</p>
+            <div class="overwrite-buttons">
+                <button class="btn-overwrite-confirm" onclick="confirmOverwrite()">确定</button>
+                <button class="btn-overwrite-cancel" onclick="cancelOverwrite()">取消</button>
+            </div>
         </div>
     </div>
 </div>
@@ -132,20 +154,231 @@
 
 {% block extra_js %}
 <script>
-    function openUploadModal() {
-        document.getElementById('uploadModal').style.display = 'block';
+var _uploading = false;
+var _pendingOverwriteFile = null;
+var _pendingOverwriteKey = null;
+
+function formatFileSize(bytes) {
+    if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(2) + ' GB';
+    if (bytes >= 1048576) return (bytes / 1048576).toFixed(1) + ' MB';
+    if (bytes >= 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return bytes + ' B';
+}
+
+function onFileSelected() {
+    var input = document.getElementById('file');
+    var info = document.getElementById('fileInfo');
+    var btn = document.getElementById('uploadBtn');
+    if (input.files.length > 0) {
+        var f = input.files[0];
+        info.innerHTML = '<span class="file-info-name">' + f.name + '</span> <span class="file-info-size">' + formatFileSize(f.size) + '</span>';
+        btn.disabled = false;
+    } else {
+        info.innerHTML = '';
+        btn.disabled = true;
+    }
+}
+
+function openUploadModal() {
+    document.getElementById('uploadModal').style.display = 'flex';
+    document.getElementById('uploadProgress').style.display = 'none';
+    document.getElementById('uploadStatus').textContent = '';
+    document.getElementById('uploadBtn').style.display = 'block';
+    document.getElementById('uploadBtn').disabled = true;
+    document.getElementById('file').value = '';
+    document.getElementById('fileInfo').innerHTML = '';
+    setTimeout(function() { document.getElementById('file').focus(); }, 100);
+}
+
+function closeUploadModal() {
+    document.getElementById('uploadModal').style.display = 'none';
+}
+
+function startUpload(overwrite) {
+    if (_uploading) return;
+    var fileInput = document.getElementById('file');
+    var keyInput = document.getElementById('secret_key');
+    var file = fileInput.files[0];
+
+    if (!file) { alert('请选择文件'); return; }
+    if (!keyInput.value.trim()) { alert('请输入上传密钥'); return; }
+
+    // 如果未确认覆盖，先检查是否重复
+    if (!overwrite) {
+        var x = new XMLHttpRequest();
+        x.open('GET', '/api/check_duplicate?filename=' + encodeURIComponent(file.name), true);
+        x.onload = function() {
+            if (x.status === 200) {
+                var resp = JSON.parse(x.responseText);
+                if (resp.exists) {
+                    document.getElementById('overwriteFileName').textContent = resp.filename;
+                    document.getElementById('overwriteModal').style.display = 'flex';
+                    _pendingOverwriteFile = file;
+                    _pendingOverwriteKey = keyInput.value.trim();
+                    return;
+                }
+            }
+            // 不存在或检查失败，直接上传
+            doUpload(file, keyInput.value.trim(), false);
+        };
+        x.onerror = function() {
+            doUpload(file, keyInput.value.trim(), false);
+        };
+        x.send();
+        return;
     }
 
-    function closeUploadModal() {
-        document.getElementById('uploadModal').style.display = 'none';
-    }
+    doUpload(file, keyInput.value.trim(), true);
+}
 
-    // 点击模态窗口外部关闭窗口
-    window.onclick = function (event) {
-        const modal = document.getElementById('uploadModal');
-        if (event.target == modal) {
-            closeUploadModal();
+function doUpload(file, key, overwrite) {
+    _uploading = true;
+
+    var formData = new FormData();
+    formData.append('file', file);
+    formData.append('secret_key', key);
+    if (overwrite) formData.append('overwrite', '1');
+
+    var xhr = new XMLHttpRequest();
+    var btn = document.getElementById('uploadBtn');
+    var progressDiv = document.getElementById('uploadProgress');
+    var progressBar = document.getElementById('progressBar');
+    var progressText = document.getElementById('progressText');
+    var progressDetail = document.getElementById('progressDetail');
+    var statusDiv = document.getElementById('uploadStatus');
+
+    btn.style.display = 'none';
+    progressDiv.style.display = 'block';
+    statusDiv.textContent = '';
+    statusDiv.className = 'upload-status';
+    progressBar.style.width = '0%';
+    progressText.textContent = '0%';
+    progressDetail.textContent = '';
+
+    var startTime = Date.now();
+    var lastLoaded = 0;
+    var lastTime = Date.now();
+
+    xhr.upload.onprogress = function(e) {
+        if (e.lengthComputable) {
+            var pct = Math.round((e.loaded / e.total) * 100);
+            progressBar.style.width = pct + '%';
+            progressText.textContent = pct + '%';
+
+            var now = Date.now();
+            var elapsed = (now - lastTime) / 1000;
+            var totalElapsed = (now - startTime) / 1000;
+
+            var speedBps = 0;
+            if (elapsed >= 0.5) {
+                var chunkBytes = e.loaded - lastLoaded;
+                speedBps = chunkBytes / elapsed;
+                lastLoaded = e.loaded;
+                lastTime = now;
+            } else {
+                speedBps = e.loaded / totalElapsed;
+            }
+
+            var speedText = speedBps >= 1048576
+                ? (speedBps / 1048576).toFixed(1) + ' MB/s'
+                : (speedBps / 1024).toFixed(1) + ' KB/s';
+
+            var eta = '';
+            if (speedBps > 0) {
+                var remaining = (e.total - e.loaded) / speedBps;
+                if (remaining >= 60) {
+                    eta = Math.round(remaining / 60) + ' 分钟';
+                } else if (remaining >= 1) {
+                    eta = Math.round(remaining) + ' 秒';
+                }
+            }
+
+            var loadedText = formatFileSize(e.loaded);
+            var totalText = formatFileSize(e.total);
+            var detail = speedText;
+            if (eta) detail += ' · 剩余 ' + eta;
+            detail += ' · ' + loadedText + ' / ' + totalText;
+            progressDetail.textContent = detail;
+        }
+    };
+
+    xhr.onload = function() {
+        _uploading = false;
+        if (xhr.status === 200 || xhr.status === 201) {
+            statusDiv.textContent = '上传完成 ✓';
+            statusDiv.className = 'upload-status success';
+            progressBar.style.width = '100%';
+            progressText.textContent = '100%';
+            progressDetail.textContent = '即将刷新页面...';
+            setTimeout(function() {
+                closeUploadModal();
+                location.reload();
+            }, 1500);
+        } else {
+            var msg = '上传失败';
+            try {
+                var resp = JSON.parse(xhr.responseText);
+                msg = resp.error || msg;
+            } catch(e) {}
+            statusDiv.textContent = msg;
+            statusDiv.className = 'upload-status error';
+            btn.style.display = 'block';
+            btn.disabled = false;
+            progressDiv.style.display = 'none';
+        }
+    };
+
+    xhr.onerror = function() {
+        _uploading = false;
+        statusDiv.textContent = '网络错误，上传中断';
+        statusDiv.className = 'upload-status error';
+        btn.style.display = 'block';
+        btn.disabled = false;
+        progressDiv.style.display = 'none';
+    };
+
+    xhr.open('POST', '/upload', true);
+    xhr.send(formData);
+}
+
+// 覆盖确认
+function confirmOverwrite() {
+    document.getElementById('overwriteModal').style.display = 'none';
+    if (_pendingOverwriteFile) {
+        doUpload(_pendingOverwriteFile, _pendingOverwriteKey, true);
+        _pendingOverwriteFile = null;
+        _pendingOverwriteKey = null;
+    }
+}
+
+function cancelOverwrite() {
+    document.getElementById('overwriteModal').style.display = 'none';
+    _pendingOverwriteFile = null;
+    _pendingOverwriteKey = null;
+    document.getElementById('uploadBtn').style.display = 'block';
+    document.getElementById('uploadBtn').disabled = false;
+}
+
+// 点击模态窗口外部关闭
+document.addEventListener('click', function(event) {
+    var uploadModal = document.getElementById('uploadModal');
+    if (event.target == uploadModal) closeUploadModal();
+    var overwriteModal = document.getElementById('overwriteModal');
+    if (event.target == overwriteModal) cancelOverwrite();
+});
+
+// Enter 快捷键：上传弹窗内触发确认上传
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Enter') {
+        var uploadModal = document.getElementById('uploadModal');
+        if (uploadModal.style.display === 'flex') {
+            var btn = document.getElementById('uploadBtn');
+            if (btn.style.display !== 'none' && !btn.disabled) {
+                event.preventDefault();
+                startUpload();
+            }
         }
     }
+});
 </script>
 {% endblock %}

@@ -5,7 +5,18 @@ import uuid, zoneinfo
 from datetime import datetime, timezone
 from flask import Flask, render_template, send_from_directory, abort, request, redirect, url_for, flash, jsonify
 from urllib.parse import urlparse
-from werkzeug.utils import secure_filename
+# 安全处理文件名：防路径穿越，保留中文和特殊字符
+def safe_filename(filename):
+    # 移除路径分隔符，防止路径穿越
+    filename = filename.replace('/', '_').replace('\\', '_')
+    # 移除控制字符和 null 字节
+    filename = ''.join(c for c in filename if c >= ' ' or c in '\t\r\n')
+    # 移除首尾空白
+    filename = filename.strip(' .')
+    # 压缩连续空格/下划线
+    import re
+    filename = re.sub(r'[ _]{2,}', '_', filename)
+    return filename if filename else 'untitled'
 import os
 from crawler.res import get_ticket_data
 
@@ -15,6 +26,23 @@ SETTING_FILE = "setting.json"  # 设置文件路径
 
 CACHE_DIR = "cache"
 ADMIN_COOKIE_FILE = os.path.join(CACHE_DIR, "admin_cookies.json")
+
+# 最大上传 2GB
+app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024 * 1024
+# 增大表单内存缓冲（16MB 以内直接内存，超过写临时文件）
+app.config['MAX_FORM_MEMORY_SIZE'] = 16 * 1024 * 1024
+
+# 全局 500 错误处理器，输出异常到控制台
+@app.errorhandler(500)
+def internal_error(e):
+    import traceback
+    traceback.print_exc()
+    return "Internal Server Error", 500
+
+# 413 返回 JSON（而非默认 HTML）
+@app.errorhandler(413)
+def request_entity_too_large(e):
+    return jsonify({'error': '文件大小超过限制（最大 2GB）'}), 413
 
 # 默认设置
 DEFAULT_SETTINGS = {
@@ -228,46 +256,54 @@ def get_secret_key():
     except FileNotFoundError:
         return None
 
+# 检测文件是否已存在（用于前端确认覆盖）
+@app.route('/api/check_duplicate')
+def check_duplicate():
+    filename = request.args.get('filename', '')
+    if not filename:
+        return jsonify({'exists': False})
+    safe_name = safe_filename(filename)
+    filepath = os.path.join(DOWNLOAD_DIRECTORY, safe_name)
+    return jsonify({'exists': os.path.exists(filepath), 'filename': safe_name})
+
 #上传文件
 @app.route('/upload', methods=['POST'])
 def upload_file():
     try:
-        if 'file' not in request.files:
-            flash('未选择文件')
-            return redirect(url_for('list_directory'))
-        
-        file = request.files['file']
-        if file.filename == '':
-            flash('未选择文件')
-            return redirect(url_for('list_directory'))
-        
         # 验证密钥
         secret_key = get_secret_key()
         if not secret_key:
-            flash('服务器配置错误')
-            return redirect(url_for('list_directory'))
-            
+            return jsonify({'error': '服务器配置错误'}), 500
+
         provided_key = request.form.get('secret_key', '')
         if provided_key != secret_key:
-            flash('无效的上传密钥')
-            return redirect(url_for('list_directory'))
-        
+            return jsonify({'error': '无效的上传密钥'}), 403
+
+        if 'file' not in request.files:
+            return jsonify({'error': '未选择文件'}), 400
+
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': '未选择文件'}), 400
+
         # 确保文件名安全
-        filename = secure_filename(file.filename)
+        filename = safe_filename(file.filename)
         if not filename:
-            flash('无效的文件名')
-            return redirect(url_for('list_directory'))
-        
-        # 保存文件到download目录
+            return jsonify({'error': '无效的文件名'}), 400
+
         filepath = os.path.join(DOWNLOAD_DIRECTORY, filename)
+
+        # 文件覆盖保护：未传 overwrite 参数且文件已存在则拒绝
+        overwrite = request.form.get('overwrite', '0') == '1'
+        if os.path.exists(filepath) and not overwrite:
+            return jsonify({'exists': True, 'filename': filename}), 409
+
         file.save(filepath)
-        flash('文件上传成功')
-        return redirect(url_for('list_directory'))
-        
+        return jsonify({'success': True, 'message': '上传成功'})
+
     except Exception as e:
         app.logger.error(f'上传错误: {str(e)}')
-        flash('文件上传失败')
-        return redirect(url_for('index'))
+        return jsonify({'error': '上传失败: ' + str(e)}), 500
 
 #关于页面
 @app.route('/about')
@@ -576,5 +612,7 @@ def admin_logout():
 if __name__ == "__main__":
     init_app()  # 初始化应用
     app.secret_key = 'your-secret-key-here'  # 用于flash消息
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    from waitress import serve
+    print("服务器已启动: http://0.0.0.0:5000")
+    serve(app, host="0.0.0.0", port=5000, threads=8)
 
