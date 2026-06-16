@@ -266,6 +266,16 @@ def check_duplicate():
     filepath = os.path.join(DOWNLOAD_DIRECTORY, safe_name)
     return jsonify({'exists': os.path.exists(filepath), 'filename': safe_name})
 
+# 预验证密钥（上传前先校验，不上传文件体）
+@app.route('/api/verify_key', methods=['POST'])
+def verify_key():
+    data = request.get_json()
+    provided_key = data.get('key', '') if data else ''
+    secret_key = get_secret_key()
+    if not secret_key:
+        return jsonify({'valid': False, 'error': '服务器配置错误'}), 500
+    return jsonify({'valid': provided_key == secret_key})
+
 #上传文件
 @app.route('/upload', methods=['POST'])
 def upload_file():

@@ -420,6 +420,25 @@
     text-align: center;
 }
 
+.cancel-upload-btn {
+    margin-top: 16px;
+    padding: 8px 24px;
+    border: 1px solid #ddd;
+    background: #fff;
+    color: #999;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+    display: none;
+}
+
+.cancel-upload-btn:hover {
+    border-color: #e74c3c;
+    color: #e74c3c;
+    background: #fff5f5;
+}
+
 .progress-bar-bg {
     width: 100%;
     height: 10px;
