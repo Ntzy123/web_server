@@ -468,13 +468,17 @@ def get_water_data():
 
 @app.route('/api/wbtools_version', methods=['GET'])
 def list_wbtools_versions():
-    versions = get_wbtools_versions()
-    sort = request.args.get('sort', 'versionCode,desc')
-    if sort == 'versionCode,asc':
-        versions.sort(key=lambda x: x['versionCode'])
-    else:
-        versions.sort(key=lambda x: x['versionCode'], reverse=True)
-    return jsonify(versions)
+    try:
+        versions = get_wbtools_versions()
+        sort = request.args.get('sort', 'versionCode,desc')
+        if sort == 'versionCode,asc':
+            versions.sort(key=lambda x: x['versionCode'])
+        else:
+            versions.sort(key=lambda x: x['versionCode'], reverse=True)
+        return jsonify(versions)
+    except Exception as e:
+        app.logger.error(f'获取版本列表错误: {str(e)}')
+        return jsonify({'error': '获取版本列表失败'}), 500
 
 
 @app.route('/api/wbtools_version/latest', methods=['GET'])

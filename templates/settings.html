@@ -58,14 +58,15 @@
 <!-- WBTools 版本管理弹窗 -->
 <div id="versionModal" class="modal">
     <div class="modal-content version-modal-content">
-        <span class="close" onclick="versionManager.close()">&times;</span>
         <div class="version-header">
             <button id="backBtn" class="back-btn" onclick="versionManager.backToList()" style="display:none;">&#8592;</button>
             <h2 id="versionModalTitle">WBTools 版本管理</h2>
             <div class="version-actions" id="versionActions">
                 <button class="btn-icon" onclick="versionManager.addNew()" title="新增">+</button>
+                <button class="btn-icon" id="copyBtn" onclick="versionManager.copyVersion()" title="复制" style="display:none;">⧉</button>
                 <button class="btn-icon btn-delete" onclick="versionManager.confirmDelete()" title="删除">&#128465;</button>
             </div>
+            <span class="close" onclick="versionManager.close()">&times;</span>
         </div>
         <div id="versionListView" class="version-list-view">
             <div id="versionList" class="version-list"></div>
@@ -152,14 +153,7 @@
     }
 
     window.onclick = function(event) {
-        const editModal = document.getElementById('editModal');
-        if (event.target == editModal) {
-            closeEditModal();
-        }
-        const versionModal = document.getElementById('versionModal');
-        if (event.target == versionModal) {
-            versionManager.close();
-        }
+        // 仅管理员弹窗支持点击外部关闭，其余弹窗必须点击关闭按钮
         const adminModal = document.getElementById('adminModal');
         if (event.target == adminModal) {
             closeAdminModal();
@@ -187,13 +181,16 @@
 
         loadVersions(callback) {
             fetch('/api/wbtools_version')
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) return res.json().then(e => { throw new Error(e.error || '请求失败'); });
+                    return res.json();
+                })
                 .then(data => {
                     this.versions = data;
                     if (callback) callback();
                 })
                 .catch(err => {
-                    alert('获取版本列表失败: ' + err);
+                    alert('获取版本列表失败: ' + err.message);
                 });
         },
 
@@ -205,6 +202,9 @@
                 document.getElementById('backBtn').style.display = 'none';
                 document.getElementById('versionActions').style.display = '';
                 document.getElementById('versionModalTitle').textContent = 'WBTools 版本管理';
+                if (!this.selectedVersionId) {
+                    document.getElementById('copyBtn').style.display = 'none';
+                }
                 this.renderList();
             } else {
                 document.getElementById('versionListView').style.display = 'none';
@@ -229,6 +229,7 @@
             if (this.versions.length === 0) {
                 container.innerHTML = '';
                 emptyTip.style.display = '';
+                document.getElementById('copyBtn').style.display = 'none';
                 return;
             }
             emptyTip.style.display = 'none';
@@ -255,6 +256,7 @@
                 return;
             }
             this.selectedVersionId = id;
+            document.getElementById('copyBtn').style.display = '';
             this.renderList();
         },
 
@@ -268,6 +270,8 @@
 
         addNew() {
             this.editingVersion = null;
+            this.selectedVersionId = null;
+            document.getElementById('copyBtn').style.display = 'none';
             this.clearForm();
             this.switchView('edit');
         },
@@ -366,6 +370,22 @@
             .catch(err => {
                 alert('删除失败: ' + err.message);
             });
+        },
+
+        copyVersion() {
+            if (!this.selectedVersionId) return;
+            const orig = this.versions.find(v => v.id === this.selectedVersionId);
+            if (!orig) return;
+            // 复制一份，清空 id，versionCode 设为原值+1，名称加"（副本）"
+            this.editingVersion = null;
+            this.clearForm();
+            document.getElementById('formEditId').value = '';
+            document.getElementById('formVersionCode').value = orig.versionCode + 1;
+            document.getElementById('formVersionName').value = orig.versionName + '（副本）';
+            document.getElementById('formUpdateDesc').value = orig.updateDesc || '';
+            document.getElementById('formDownloadUrl').value = orig.downloadUrl || '';
+            document.getElementById('formForceUpdate').checked = orig.forceUpdate || false;
+            this.switchView('edit');
         }
     };
 </script>
