@@ -42,7 +42,9 @@
 <!-- 编辑弹窗 -->
 <div id="editModal" class="modal">
     <div class="modal-content">
-        <span class="close" onclick="closeEditModal()">&times;</span>
+        <button class="btn-icon btn-close btn-close-float" onclick="closeEditModal()" title="关闭">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
         <h2 id="modalTitle">编辑配置</h2>
         <input type="hidden" id="editKey">
         <div class="form-group">
@@ -62,11 +64,19 @@
             <button id="backBtn" class="back-btn" onclick="versionManager.backToList()" style="display:none;">&#8592;</button>
             <h2 id="versionModalTitle">WBTools 版本管理</h2>
             <div class="version-actions" id="versionActions">
-                <button class="btn-icon" onclick="versionManager.addNew()" title="新增">+</button>
-                <button class="btn-icon" id="copyBtn" onclick="versionManager.copyVersion()" title="复制" style="display:none;">⧉</button>
-                <button class="btn-icon btn-delete" onclick="versionManager.confirmDelete()" title="删除">&#128465;</button>
+                <button class="btn-icon" onclick="versionManager.addNew()" title="新增">
+                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
+                <button class="btn-icon" id="copyBtn" onclick="versionManager.copyVersion()" title="复制" style="display:none;">
+                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                </button>
+                <button class="btn-icon btn-delete" onclick="versionManager.confirmDelete()" title="删除">
+                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>
             </div>
-            <span class="close" onclick="versionManager.close()">&times;</span>
+            <button class="btn-icon btn-close" onclick="versionManager.close()" title="关闭">
+                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
         </div>
         <div id="versionListView" class="version-list-view">
             <div id="versionList" class="version-list"></div>
@@ -495,7 +505,9 @@
 <!-- 管理员验证模态框 -->
 <div id="adminModal" class="modal">
     <div class="modal-content admin-modal-content">
-        <span class="close" onclick="closeAdminModal()">&times;</span>
+        <button class="btn-icon btn-close btn-close-float" onclick="closeAdminModal()" title="关闭">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
         <h2 id="adminModalTitle">管理员验证</h2>
         <p id="adminModalDesc" class="admin-modal-desc">请输入管理员密钥以获取编辑权限</p>
         <div id="adminKeyGroup" class="form-group">

@@ -177,19 +177,32 @@
     font-size: 18px;
 }
 
-.version-header .close {
-    position: relative;
-    float: none;
-    font-size: 24px;
-    font-weight: bold;
-    color: #aaa;
+.btn-close {
+    width: 32px;
+    height: 32px;
+    border: 1px solid transparent;
+    background: none;
+    border-radius: 4px;
     cursor: pointer;
-    line-height: 1;
-    margin-left: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    color: #aaa;
+    padding: 0;
+    flex-shrink: 0;
 }
 
-.version-header .close:hover {
-    color: #000;
+.btn-close:hover {
+    border-color: #ddd;
+    color: #333;
+    background: #f5f5f5;
+}
+
+/* 浮动在右上角的关闭按钮（Water Token / 管理员） */
+.btn-close-float {
+    float: right;
+    margin: -8px -8px 0 0;
 }
 
 .back-btn {
