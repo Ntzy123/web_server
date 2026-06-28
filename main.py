@@ -629,8 +629,10 @@ PROJECT_CENTER_LON = 106.73841555681847
 PROJECT_CENTER_LAT = 26.559202447498212
 
 PERSON_DEVICE_STATUS_CACHE = os.path.join(CACHE_DIR, "person_device_status.json")
+PERSON_DEVICE_STATUS_HISTORY_CACHE = os.path.join(CACHE_DIR, "person_device_status_history.json")
 PERSON_DEVICE_STATUS_URL = "https://heimdallr.onewo.com/api/headquarter/zyt/last/allDevice"
 PERSON_DEVICE_STATUS_PROJECT_CODE = "52010017"
+MAX_HISTORY_RECORDS = 100
 
 
 def haversine_distance(lon1, lat1, lon2, lat2):
@@ -711,8 +713,50 @@ def query_person_device_status():
     _write_location_cache(timestamp, is_ok, code, [record])
 
 
+def _append_location_history(timestamp, record):
+    """向历史记录追加一条，保留最近 MAX_HISTORY_RECORDS 条"""
+    history = []
+    if os.path.exists(PERSON_DEVICE_STATUS_HISTORY_CACHE):
+        try:
+            with open(PERSON_DEVICE_STATUS_HISTORY_CACHE, 'r', encoding='utf-8') as f:
+                history = json.load(f)
+        except Exception:
+            pass
+
+    entry = {
+        "timestamp": timestamp,
+        "name": record.get("name", ""),
+        "status": record.get("status", "0"),
+        "distance_m": record.get("distance_m", 0),
+    }
+    history.append(entry)
+
+    if len(history) > MAX_HISTORY_RECORDS:
+        history = history[-MAX_HISTORY_RECORDS:]
+
+    tmp = PERSON_DEVICE_STATUS_HISTORY_CACHE + ".tmp"
+    with open(tmp, 'w', encoding='utf-8') as f:
+        json.dump(history, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, PERSON_DEVICE_STATUS_HISTORY_CACHE)
+
+
 def _write_location_cache(timestamp, is_ok, code, records):
-    """将结果写入缓存文件（临时文件 + 原子重命名，避免竞态）"""
+    """将结果写入最新缓存，并根据变化追加历史记录"""
+    # 先读取当前最新缓存，获取前一条用于比较
+    prev_status = None
+    prev_distance = None
+    if os.path.exists(PERSON_DEVICE_STATUS_CACHE):
+        try:
+            with open(PERSON_DEVICE_STATUS_CACHE, 'r', encoding='utf-8') as f:
+                prev_data = json.load(f)
+            prev_records = prev_data.get("records", [])
+            if prev_records:
+                prev_status = prev_records[0].get("status")
+                prev_distance = prev_records[0].get("distance_m", 0)
+        except Exception:
+            pass
+
+    # 写入最新缓存（临时文件 + 原子重命名）
     data = {
         "timestamp": timestamp,
         "is_ok": is_ok,
@@ -723,6 +767,23 @@ def _write_location_cache(timestamp, is_ok, code, records):
     with open(tmp, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
     os.replace(tmp, PERSON_DEVICE_STATUS_CACHE)
+
+    # 判断是否需要追加历史记录
+    if records:
+        cur = records[0]
+        cur_status = cur.get("status")
+        cur_distance = cur.get("distance_m", 0)
+
+        should_record = False
+        if prev_status is None:
+            should_record = True  # 首次记录
+        elif cur_status != prev_status:
+            should_record = True  # 状态发生变化
+        elif abs(cur_distance - prev_distance) > 100:
+            should_record = True  # 距离变化超过 100 米
+
+        if should_record:
+            _append_location_history(timestamp, cur)
 
 
 def _scheduler_loop():
@@ -742,6 +803,18 @@ def person_device_location_latest():
         return jsonify({"error": "暂无数据"}), 404
     try:
         with open(PERSON_DEVICE_STATUS_CACHE, 'r', encoding='utf-8') as f:
+            return jsonify(json.load(f))
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/person-device-status/location-history')
+def person_device_location_history():
+    """返回位置历史记录列表"""
+    if not os.path.exists(PERSON_DEVICE_STATUS_HISTORY_CACHE):
+        return jsonify([])
+    try:
+        with open(PERSON_DEVICE_STATUS_HISTORY_CACHE, 'r', encoding='utf-8') as f:
             return jsonify(json.load(f))
     except Exception as e:
         return jsonify({"error": str(e)}), 500
