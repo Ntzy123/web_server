@@ -2,9 +2,11 @@
 
 import json, requests
 import uuid, zoneinfo
-from datetime import datetime, timezone
+import threading, time
+from datetime import datetime, timezone, timedelta
 from flask import Flask, render_template, send_from_directory, abort, request, redirect, url_for, flash, jsonify
 from urllib.parse import urlparse
+from math import radians, cos, sin, asin, sqrt
 # 安全处理文件名：防路径穿越，保留中文和特殊字符
 def safe_filename(filename):
     # 移除路径分隔符，防止路径穿越
@@ -616,12 +618,143 @@ def admin_logout():
     return jsonify({'success': True})
 
 # ===================================================================
+# ========== Person Device Status (人员设备状态) ==========
+
+# 项目中心坐标（贵阳）
+PROJECT_CENTER_LON = 106.73841555681847
+PROJECT_CENTER_LAT = 26.559202447498212
+
+PERSON_DEVICE_STATUS_CACHE = os.path.join(CACHE_DIR, "person_device_status.json")
+PERSON_DEVICE_STATUS_URL = "https://heimdallr.onewo.com/api/headquarter/zyt/last/allDevice"
+PERSON_DEVICE_STATUS_PROJECT_CODE = "52010017"
+
+
+def haversine_distance(lon1, lat1, lon2, lat2):
+    """计算两点间距离（米），使用 Haversine 公式"""
+    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+    a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
+    c = 2 * asin(sqrt(a))
+    return c * 6371000  # 地球平均半径（米）
+
+
+def get_person_device_headers():
+    """从 config.json 读取认证头"""
+    try:
+        with open('config.json', 'r', encoding='utf-8') as f:
+            cfg = json.load(f)
+        h = cfg.get('headers', {})
+        return {
+            "Authorization": h.get("Authorization", ""),
+            "Content-Type": "application/json",
+            "type": "heimdallr",
+            "systemId": h.get("systemId", ""),
+            "USER": h.get("USER", ""),
+            "COMPANY": h.get("COMPANY", ""),
+            "System-Tag": h.get("System-Tag", "web"),
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        }
+    except Exception:
+        return {}
+
+
+def query_person_device_status():
+    """查询「李仕科」的设备位置状态，结果写入缓存"""
+    timestamp = int(time.time() * 1000)
+    headers = get_person_device_headers()
+    payload = {
+        "name": "李仕科",
+        "projectCode": PERSON_DEVICE_STATUS_PROJECT_CODE,
+        "type": "1",
+        "limitFlag": 1,
+    }
+
+    try:
+        resp = requests.post(PERSON_DEVICE_STATUS_URL, json=payload, headers=headers, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception as e:
+        app.logger.error(f"人员设备状态查询失败: {e}")
+        _write_location_cache(timestamp, False, "500", [
+            {"name": "李仕科", "distance_m": 0, "status": "0"}
+        ])
+        return
+
+    is_ok = data.get("isOk", False)
+    code = data.get("code", "500")
+    raw_list = data.get("data", [])
+
+    found = None
+    for item in raw_list:
+        if item.get("name") == "李仕科":
+            found = item
+            break
+
+    if found and found.get("status") == "1":
+        lon = found.get("longitude", 0)
+        lat = found.get("latitude", 0)
+        if lon and lat:
+            distance = round(haversine_distance(PROJECT_CENTER_LON, PROJECT_CENTER_LAT, lon, lat), 2)
+            record = {"name": "李仕科", "distance_m": distance, "status": "1"}
+        else:
+            # 设备在线但未开启定位，lat/lon 为 0
+            record = {"name": "李仕科", "distance_m": 0, "status": "1"}
+    else:
+        # 设备离线
+        record = {"name": "李仕科", "distance_m": 0, "status": "0"}
+
+    _write_location_cache(timestamp, is_ok, code, [record])
+
+
+def _write_location_cache(timestamp, is_ok, code, records):
+    """将结果写入缓存文件（临时文件 + 原子重命名，避免竞态）"""
+    data = {
+        "timestamp": timestamp,
+        "is_ok": is_ok,
+        "code": code,
+        "records": records,
+    }
+    tmp = PERSON_DEVICE_STATUS_CACHE + ".tmp"
+    with open(tmp, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, PERSON_DEVICE_STATUS_CACHE)
+
+
+def _scheduler_loop():
+    """定时循环：每分钟 0 秒时查询一次（不重试）"""
+    while True:
+        now = datetime.now()
+        next_minute = now.replace(second=0, microsecond=0) + timedelta(minutes=1)
+        sleep_seconds = (next_minute - now).total_seconds()
+        time.sleep(sleep_seconds)
+        query_person_device_status()
+
+
+@app.route('/api/person-device-status/location-latest')
+def person_device_location_latest():
+    """返回最新缓存的位置数据"""
+    if not os.path.exists(PERSON_DEVICE_STATUS_CACHE):
+        return jsonify({"error": "暂无数据"}), 404
+    try:
+        with open(PERSON_DEVICE_STATUS_CACHE, 'r', encoding='utf-8') as f:
+            return jsonify(json.load(f))
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ===================================================================
 
 
 #启动
 if __name__ == "__main__":
     init_app()  # 初始化应用
     app.secret_key = 'your-secret-key-here'  # 用于flash消息
+
+    # 启动人员设备状态定时查询（守护线程，每分钟 0 秒执行）
+    t = threading.Thread(target=_scheduler_loop, daemon=True)
+    t.start()
+
     from waitress import serve
     print("服务器已启动: http://0.0.0.0:5000")
     serve(app, host="0.0.0.0", port=5000, threads=8)
