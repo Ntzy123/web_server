@@ -273,28 +273,18 @@ def check_duplicate():
     filepath = os.path.join(target_dir, safe_name)
     return jsonify({'exists': os.path.exists(filepath), 'filename': safe_name})
 
-# 预验证密钥（上传前先校验，不上传文件体）
-@app.route('/api/verify_key', methods=['POST'])
-def verify_key():
-    data = request.get_json()
-    provided_key = data.get('key', '') if data else ''
-    secret_key = get_secret_key()
-    if not secret_key:
-        return jsonify({'valid': False, 'error': '服务器配置错误'}), 500
-    return jsonify({'valid': provided_key == secret_key})
 
 #上传文件
 @app.route('/upload', methods=['POST'])
 def upload_file():
     try:
-        # 验证密钥
-        secret_key = get_secret_key()
-        if not secret_key:
-            return jsonify({'error': '服务器配置错误'}), 500
-
-        provided_key = request.form.get('secret_key', '')
-        if provided_key != secret_key:
-            return jsonify({'error': '无效的上传密钥'}), 403
+        # 验证管理员cookie
+        token = request.cookies.get('admin_token', '')
+        if not token:
+            return jsonify({'error': '未授权'}), 403
+        cookies = load_admin_cookies()
+        if not any(c['token'] == token for c in cookies):
+            return jsonify({'error': '管理员身份已过期'}), 403
 
         if 'file' not in request.files:
             return jsonify({'error': '未选择文件'}), 400

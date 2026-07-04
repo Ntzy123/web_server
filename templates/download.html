@@ -123,10 +123,6 @@
                         上传至：/<span id="currentDirDisplay">{% if current_path %}{{ current_path }}{% endif %}</span>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label for="secret_key" class="key-label">上传密钥:</label>
-                    <input type="password" id="secret_key" name="secret_key" class="key-input" required>
-                </div>
                 <button id="uploadBtn" class="upload-button" onclick="startUpload()" disabled>确认上传</button>
             </div>
             <!-- 进度条 -->
@@ -173,7 +169,6 @@
 var _uploading = false;
 var _currentXHR = null;
 var _pendingOverwriteFile = null;
-var _pendingOverwriteKey = null;
 var _currentSubpath = '{{ current_path | e }}';
 
 function formatFileSize(bytes) {
@@ -198,6 +193,21 @@ function onFileSelected() {
 }
 
 function openUploadModal() {
+    // 先检查管理员权限
+    if (!window.AdminAuth.isAdmin) {
+        var unsub = window.AdminAuth.subscribe(function checkAuth(isAdmin) {
+            if (isAdmin) {
+                unsub();
+                doOpenUploadModal();
+            }
+        });
+        document.getElementById('badgeBtn').click();
+        return;
+    }
+    doOpenUploadModal();
+}
+
+function doOpenUploadModal() {
     document.getElementById('uploadModal').style.display = 'flex';
     document.getElementById('uploadProgress').style.display = 'none';
     document.getElementById('uploadStatus').textContent = '';
@@ -212,16 +222,12 @@ function closeUploadModal() {
     document.getElementById('uploadModal').style.display = 'none';
 }
 
-// 先验证密钥再传文件
 function startUpload(overwrite) {
     if (_uploading) return;
     var fileInput = document.getElementById('file');
-    var keyInput = document.getElementById('secret_key');
     var file = fileInput.files[0];
 
     if (!file) { alert('请选择文件'); return; }
-    var key = keyInput.value.trim();
-    if (!key) { alert('请输入上传密钥'); return; }
 
     // 不做覆盖确认时，先检查重复
     if (!overwrite) {
@@ -234,54 +240,26 @@ function startUpload(overwrite) {
                     document.getElementById('overwriteFileName').textContent = resp.filename;
                     document.getElementById('overwriteModal').style.display = 'flex';
                     _pendingOverwriteFile = file;
-                    _pendingOverwriteKey = key;
                     return;
                 }
             }
-            // 不存在则先验证密钥
-            verifyKeyThenUpload(file, key, false);
+            doUpload(file, overwrite);
         };
         x.onerror = function() {
-            verifyKeyThenUpload(file, key, false);
+            doUpload(file, overwrite);
         };
         x.send();
         return;
     }
 
-    verifyKeyThenUpload(file, key, true);
+    doUpload(file, true);
 }
 
-function verifyKeyThenUpload(file, key, overwrite) {
-    var x = new XMLHttpRequest();
-    x.open('POST', '/api/verify_key', true);
-    x.setRequestHeader('Content-Type', 'application/json');
-    x.onload = function() {
-        if (x.status === 200) {
-            var resp = JSON.parse(x.responseText);
-            if (resp.valid) {
-                doUpload(file, key, overwrite);
-                return;
-            }
-        }
-        // 密钥无效
-        var msg = '密钥验证失败';
-        try { msg = JSON.parse(x.responseText).error || msg; } catch(e) {}
-        document.getElementById('uploadStatus').textContent = msg;
-        document.getElementById('uploadStatus').className = 'upload-status error';
-    };
-    x.onerror = function() {
-        document.getElementById('uploadStatus').textContent = '密钥验证请求失败';
-        document.getElementById('uploadStatus').className = 'upload-status error';
-    };
-    x.send(JSON.stringify({key: key}));
-}
-
-function doUpload(file, key, overwrite) {
+function doUpload(file, overwrite) {
     _uploading = true;
 
     var formData = new FormData();
     formData.append('file', file);
-    formData.append('secret_key', key);
     if (_currentSubpath) formData.append('subpath', _currentSubpath);
     if (overwrite) formData.append('overwrite', '1');
 
@@ -357,7 +335,7 @@ function doUpload(file, key, overwrite) {
         _currentXHR = null;
         cancelBtn.style.display = 'none';
         if (xhr.status === 200 || xhr.status === 201) {
-            statusDiv.textContent = '上传完成 ✓';
+            statusDiv.textContent = '上传完成';
             statusDiv.className = 'upload-status success';
             progressBar.style.width = '100%';
             progressText.textContent = '100%';
@@ -399,16 +377,14 @@ function doUpload(file, key, overwrite) {
 function confirmOverwrite() {
     document.getElementById('overwriteModal').style.display = 'none';
     if (_pendingOverwriteFile) {
-        verifyKeyThenUpload(_pendingOverwriteFile, _pendingOverwriteKey, true);
+        doUpload(_pendingOverwriteFile, true);
         _pendingOverwriteFile = null;
-        _pendingOverwriteKey = null;
     }
 }
 
 function cancelOverwrite() {
     document.getElementById('overwriteModal').style.display = 'none';
     _pendingOverwriteFile = null;
-    _pendingOverwriteKey = null;
     document.getElementById('uploadBtn').style.display = 'block';
     document.getElementById('uploadBtn').disabled = false;
 }

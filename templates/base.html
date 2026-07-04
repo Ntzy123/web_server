@@ -21,10 +21,83 @@
                 <a href="/about" {% if current_page == 'about' %}class="active"{% endif %}>关于</a>
                 <a href="/settings" {% if current_page == 'settings' %}class="active"{% endif %}>配置</a>
             </div>
+            <div class="admin-badge-wrapper">
+                <button class="badge-btn" id="badgeBtn">
+                    <svg class="badge-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                    <span class="badge-label">管理员</span>
+                </button>
+            </div>
         </div>
     </div>
 
     {% block content %}{% endblock %}
+
+    <!-- 全局管理员弹窗 -->
+    <div class="admin-overlay" id="adminOverlay"></div>
+
+    <!-- 认证弹窗（未认证） -->
+    <div class="admin-modal" id="authModal">
+        <button class="btn-close" onclick="AdminAuth.closeAll()" title="关闭">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+        <div class="admin-modal-header">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            <h3>管理员验证</h3>
+        </div>
+        <p class="admin-modal-sub">请输入管理员密钥以解锁管理功能</p>
+        <input class="admin-modal-input" type="password" id="keyInput" placeholder="输入密钥..." autocomplete="off">
+        <p class="admin-modal-error" id="errorMsg">密钥错误，请重试</p>
+        <div class="admin-modal-actions">
+            <button class="btn btn-cancel" style="background:#f0f0f0;color:#666;" onclick="AdminAuth.closeAll()">取消</button>
+            <button class="btn btn-confirm" style="background:linear-gradient(135deg,#4A90D9,#357ABD);color:#fff;" onclick="AdminAuth.login()">确认</button>
+        </div>
+    </div>
+
+    <!-- 已认证弹窗 -->
+    <div class="admin-modal" id="authedModal">
+        <button class="btn-close" onclick="AdminAuth.closeAll()" title="关闭">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+        <div class="admin-modal-header">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            <h3>管理员模式</h3>
+        </div>
+        <div class="admin-auth-status">
+            <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span>已认证 &middot; 管理功能已解锁</span>
+        </div>
+        <button class="btn-logout" style="width:100%;padding:9px 0;background:#fff;border:1.5px solid #e0e0e0;border-radius:10px;color:#e74c3c;font-size:0.88rem;font-weight:500;cursor:pointer;font-family:inherit;transition:all 0.2s;" onmouseover="this.style.background='#fef2f2';this.style.borderColor='#e74c3c'" onmouseout="this.style.background='#fff';this.style.borderColor='#e0e0e0'" onclick="AdminAuth.showLogoutConfirm()">退出管理员模式</button>
+    </div>
+
+    <!-- 退出二次确认弹窗 -->
+    <div class="admin-modal" id="logoutConfirmModal" style="width:320px;">
+        <button class="btn-close" onclick="AdminAuth.closeAll()" title="关闭">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+        <div class="admin-modal-header">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            <h3>确认退出</h3>
+        </div>
+        <p class="admin-modal-sub">确定要退出管理员模式吗？<br>部分功能将恢复为锁定状态。</p>
+        <div class="admin-modal-actions">
+            <button class="btn" style="flex:1;padding:9px 0;border-radius:10px;font-size:0.88rem;font-weight:500;cursor:pointer;font-family:inherit;background:linear-gradient(135deg,#4A90D9,#357ABD);color:#fff;border:none;" onclick="AdminAuth.cancelLogout()">取消</button>
+            <button class="btn" style="flex:1;padding:9px 0;border-radius:10px;font-size:0.88rem;font-weight:500;cursor:pointer;font-family:inherit;background:#e74c3c;color:#fff;border:none;" onclick="AdminAuth.doLogout()">确认退出</button>
+        </div>
+    </div>
 
     <footer class="footer">
         <div class="footer-content">
@@ -33,5 +106,176 @@
     </footer>
 
     {% block extra_js %}{% endblock %}
+
+<script>
+// ========== 全局管理员认证 ==========
+window.AdminAuth = (function() {
+    var isAdmin = false;
+    var callbacks = [];
+
+    function onAuthChange() {
+        var badge = document.getElementById('badgeBtn');
+        var label = badge.querySelector('.badge-label');
+        var icon = badge.querySelector('.badge-icon');
+        if (isAdmin) {
+            badge.classList.add('is-auth');
+            label.textContent = '管理员';
+            icon.innerHTML = '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path><circle cx="12" cy="16" r="1" fill="currentColor"></circle>';
+        } else {
+            badge.classList.remove('is-auth');
+            label.textContent = '管理员';
+            icon.innerHTML = '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path>';
+        }
+        // 通知各页面回调
+        callbacks.forEach(function(cb) { cb(isAdmin); });
+    }
+
+    function closeAll() {
+        document.getElementById('authModal').classList.remove('show');
+        document.getElementById('authedModal').classList.remove('show');
+        document.getElementById('logoutConfirmModal').classList.remove('show');
+        document.getElementById('adminOverlay').classList.remove('show');
+    }
+
+    function openModal(id) {
+        closeAll();
+        document.getElementById(id).classList.add('show');
+        document.getElementById('adminOverlay').classList.add('show');
+    }
+
+    function nodBadge() {
+        var badge = document.getElementById('badgeBtn');
+        badge.classList.remove('nod');
+        void badge.offsetWidth;
+        badge.classList.add('nod');
+        setTimeout(function() { badge.classList.remove('nod'); }, 500);
+    }
+
+    return {
+        get isAdmin() { return isAdmin; },
+
+        init: function() {
+            var self = this;
+            // 徽章点击
+            document.getElementById('badgeBtn').addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (isAdmin) {
+                    openModal('authedModal');
+                } else {
+                    openModal('authModal');
+                    setTimeout(function() { document.getElementById('keyInput').focus(); }, 100);
+                }
+            });
+
+            // 遮罩点击关闭
+            document.getElementById('adminOverlay').addEventListener('click', closeAll);
+
+            // 回车提交
+            document.getElementById('keyInput').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') self.login();
+            });
+
+            // 输入时隐藏错误
+            document.getElementById('keyInput').addEventListener('input', function() {
+                document.getElementById('errorMsg').classList.remove('show');
+            });
+
+            // Escape 关闭
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') closeAll();
+            });
+
+            // 初始检查
+            fetch('/api/admin/check')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    isAdmin = data.is_admin;
+                    onAuthChange();
+                })
+                .catch(function() {});
+        },
+
+        closeAll: closeAll,
+
+        login: function() {
+            var key = document.getElementById('keyInput').value.trim();
+            if (!key) {
+                document.getElementById('errorMsg').textContent = '请输入密钥';
+                document.getElementById('errorMsg').classList.add('show');
+                return;
+            }
+            var self = this;
+            fetch('/api/admin/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ key: key })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    isAdmin = true;
+                    document.getElementById('keyInput').value = '';
+                    closeAll();
+                    onAuthChange();
+                    nodBadge();
+                } else {
+                    document.getElementById('errorMsg').textContent = data.message || '密钥错误';
+                    document.getElementById('errorMsg').classList.add('show');
+                    document.getElementById('keyInput').focus();
+                    document.getElementById('keyInput').select();
+                }
+            })
+            .catch(function() {
+                document.getElementById('errorMsg').textContent = '请求失败，请重试';
+                document.getElementById('errorMsg').classList.add('show');
+            });
+        },
+
+        showLogoutConfirm: function() {
+            closeAll();
+            openModal('logoutConfirmModal');
+        },
+
+        cancelLogout: function() {
+            closeAll();
+            setTimeout(function() { openModal('authedModal'); }, 150);
+        },
+
+        doLogout: function() {
+            var self = this;
+            fetch('/api/admin/logout', { method: 'POST' })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        isAdmin = false;
+                        closeAll();
+                        onAuthChange();
+                    }
+                })
+                .catch(function() {});
+        },
+
+        subscribe: function(cb) {
+            callbacks.push(cb);
+            // 立即推当前状态
+            cb(isAdmin);
+            // 返回取消订阅函数
+            return function() {
+                var idx = callbacks.indexOf(cb);
+                if (idx > -1) callbacks.splice(idx, 1);
+            };
+        },
+
+        unsubscribe: function(cb) {
+            var idx = callbacks.indexOf(cb);
+            if (idx > -1) callbacks.splice(idx, 1);
+        }
+    };
+})();
+
+document.addEventListener('DOMContentLoaded', function() {
+    window.AdminAuth.init();
+});
+</script>
 </body>
 </html>

@@ -58,6 +58,9 @@ body {
     padding: 0 20px;
     width: 100%;
     box-sizing: border-box;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .nav-links {
@@ -65,6 +68,70 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
+}
+
+/* ===== 全局管理员徽章（导航栏右侧） ===== */
+.admin-badge-wrapper {
+    display: flex;
+    align-items: center;
+}
+
+.badge-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 100px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    background: rgba(44, 62, 68, 0.06);
+    backdrop-filter: blur(4px);
+    border: 1.5px solid rgba(44, 62, 68, 0.12);
+    color: rgba(44, 62, 68, 0.85);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    font-family: inherit;
+    line-height: 1.4;
+}
+
+.badge-btn:hover {
+    background: rgba(44, 62, 68, 0.10);
+    border-color: rgba(44, 62, 68, 0.18);
+    color: #1a1a2e;
+}
+
+.badge-btn .badge-icon {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
+.badge-btn.is-auth {
+    background: linear-gradient(135deg, #4A90D9 0%, #357ABD 100%);
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 0 2px 12px rgba(74, 144, 217, 0.35);
+}
+
+.badge-btn.is-auth:hover {
+    box-shadow: 0 4px 18px rgba(74, 144, 217, 0.5);
+    transform: translateY(-1px);
+}
+
+.badge-btn.is-auth .badge-icon {
+    color: #fff;
+}
+
+/* 点头动画 */
+@keyframes badge-nod {
+    0%, 100% { transform: translateY(0); }
+    25% { transform: translateY(-2px); }
+    50% { transform: translateY(0); }
+    75% { transform: translateY(-1px); }
+}
+.badge-btn.nod {
+    animation: badge-nod 0.4s ease-out;
 }
 
 .nav-links a {
@@ -99,6 +166,160 @@ body {
     border-color: rgba(76, 175, 80, 0.5);
     color: #2c3e50;
     font-weight: 600;
+}
+
+/* ===== 全局遮罩 ===== */
+.admin-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.3);
+    backdrop-filter: blur(4px);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+.admin-overlay.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* ===== 全局管理员弹窗（16px 大圆角） ===== */
+.admin-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.92);
+    z-index: 1001;
+    background: #fff;
+    border-radius: 16px;
+    width: 360px;
+    padding: 28px 24px 22px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-sizing: border-box;
+}
+.admin-modal.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.admin-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+.admin-modal-header .icon {
+    width: 22px;
+    height: 22px;
+    color: #4A90D9;
+    flex-shrink: 0;
+}
+.admin-modal-header h3 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #1a1a2e;
+    margin: 0;
+}
+
+.admin-modal-sub {
+    font-size: 0.82rem;
+    color: #aaa;
+    margin: 0 0 18px 0;
+    line-height: 1.5;
+}
+
+.admin-modal-input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+    background: #fafafa;
+    box-sizing: border-box;
+    font-family: inherit;
+}
+.admin-modal-input:focus {
+    border-color: #4A90D9;
+    background: #fff;
+}
+
+.admin-modal-error {
+    font-size: 0.78rem;
+    color: #e74c3c;
+    margin-top: 6px;
+    min-height: 1.2em;
+    opacity: 0;
+    transition: opacity 0.25s;
+}
+.admin-modal-error.show {
+    opacity: 1;
+}
+
+.admin-modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+}
+.admin-modal-actions .btn {
+    flex: 1;
+    padding: 9px 0;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+
+.admin-auth-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: #f0faf4;
+    border-radius: 10px;
+    margin-bottom: 18px;
+}
+.admin-auth-status .check-icon {
+    width: 18px;
+    height: 18px;
+    color: #27ae60;
+    flex-shrink: 0;
+}
+.admin-auth-status span {
+    font-size: 0.85rem;
+    color: #1a7a3a;
+}
+
+/* 弹窗内的图标按钮 */
+.admin-modal .btn-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: none;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ccc;
+    transition: all 0.2s;
+    padding: 0;
+}
+.admin-modal .btn-close:hover {
+    background: #f5f5f5;
+    color: #666;
 }
 
 /* ===== 页脚 ===== */
@@ -173,6 +394,15 @@ body {
     .nav-links a {
         padding: 8px 12px;
         font-size: 0.9rem;
+    }
+
+    .badge-btn {
+        padding: 4px 10px;
+        font-size: 0.75rem;
+    }
+    .badge-btn .badge-icon {
+        width: 12px;
+        height: 12px;
     }
 
     .footer {
