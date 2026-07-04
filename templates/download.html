@@ -119,6 +119,9 @@
                     <label for="file" class="file-label">选择文件:</label>
                     <input type="file" id="file" name="file" class="file-input" required onchange="onFileSelected()">
                     <div id="fileInfo" class="file-info"></div>
+                    <div id="uploadTarget" class="file-info" style="margin-top:4px;color:#999;font-size:0.8rem;">
+                        上传至：/<span id="currentDirDisplay">{% if current_path %}{{ current_path }}{% endif %}</span>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label for="secret_key" class="key-label">上传密钥:</label>
@@ -171,6 +174,7 @@ var _uploading = false;
 var _currentXHR = null;
 var _pendingOverwriteFile = null;
 var _pendingOverwriteKey = null;
+var _currentSubpath = '{{ current_path | e }}';
 
 function formatFileSize(bytes) {
     if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(2) + ' GB';
@@ -222,7 +226,7 @@ function startUpload(overwrite) {
     // 不做覆盖确认时，先检查重复
     if (!overwrite) {
         var x = new XMLHttpRequest();
-        x.open('GET', '/api/check_duplicate?filename=' + encodeURIComponent(file.name), true);
+        x.open('GET', '/api/check_duplicate?filename=' + encodeURIComponent(file.name) + '&subpath=' + encodeURIComponent(_currentSubpath), true);
         x.onload = function() {
             if (x.status === 200) {
                 var resp = JSON.parse(x.responseText);
@@ -278,6 +282,7 @@ function doUpload(file, key, overwrite) {
     var formData = new FormData();
     formData.append('file', file);
     formData.append('secret_key', key);
+    if (_currentSubpath) formData.append('subpath', _currentSubpath);
     if (overwrite) formData.append('overwrite', '1');
 
     var xhr = new XMLHttpRequest();

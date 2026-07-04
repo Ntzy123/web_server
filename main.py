@@ -262,10 +262,15 @@ def get_secret_key():
 @app.route('/api/check_duplicate')
 def check_duplicate():
     filename = request.args.get('filename', '')
+    subpath = request.args.get('subpath', '')
     if not filename:
         return jsonify({'exists': False})
     safe_name = safe_filename(filename)
-    filepath = os.path.join(DOWNLOAD_DIRECTORY, safe_name)
+    target_dir = os.path.join(DOWNLOAD_DIRECTORY, subpath) if subpath else DOWNLOAD_DIRECTORY
+    # 防止路径穿越
+    if not os.path.abspath(target_dir).startswith(os.path.abspath(DOWNLOAD_DIRECTORY)):
+        return jsonify({'exists': False})
+    filepath = os.path.join(target_dir, safe_name)
     return jsonify({'exists': os.path.exists(filepath), 'filename': safe_name})
 
 # 预验证密钥（上传前先校验，不上传文件体）
@@ -303,7 +308,21 @@ def upload_file():
         if not filename:
             return jsonify({'error': '无效的文件名'}), 400
 
-        filepath = os.path.join(DOWNLOAD_DIRECTORY, filename)
+        # 支持上传到子目录
+        subpath = request.form.get('subpath', '')
+        if subpath:
+            # 安全处理子路径
+            safe_sub = os.path.normpath(subpath)
+            if safe_sub.startswith('..') or safe_sub.startswith('/') or safe_sub.startswith('\\'):
+                return jsonify({'error': '无效的路径'}), 400
+            target_dir = os.path.join(DOWNLOAD_DIRECTORY, safe_sub)
+            if not os.path.abspath(target_dir).startswith(os.path.abspath(DOWNLOAD_DIRECTORY)):
+                return jsonify({'error': '无效的路径'}), 400
+            os.makedirs(target_dir, exist_ok=True)
+        else:
+            target_dir = DOWNLOAD_DIRECTORY
+
+        filepath = os.path.join(target_dir, filename)
 
         # 文件覆盖保护：未传 overwrite 参数且文件已存在则拒绝
         overwrite = request.form.get('overwrite', '0') == '1'
