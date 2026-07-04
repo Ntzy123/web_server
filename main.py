@@ -7,6 +7,8 @@ from datetime import datetime, timezone, timedelta
 from flask import Flask, render_template, send_from_directory, abort, request, redirect, url_for, flash, jsonify
 from urllib.parse import urlparse
 from math import radians, cos, sin, asin, sqrt
+from config.core.api_defs import HEIMDALLR_HEADERS, API_DEFS
+from config.core.toml_util import load as toml_load, dump as toml_dump
 # 安全处理文件名：防路径穿越，保留中文和特殊字符
 def safe_filename(filename):
     # 移除路径分隔符，防止路径穿越
@@ -20,11 +22,13 @@ def safe_filename(filename):
     filename = re.sub(r'[ _]{2,}', '_', filename)
     return filename if filename else 'untitled'
 import os
-from crawler.res import get_ticket_data
+from crawler.res import get_night_check_data
 
 app = Flask(__name__)
 DOWNLOAD_DIRECTORY = "download"  # 定义下载目录
-SETTING_FILE = "setting.json"  # 设置文件路径
+CONFIG_RUNTIME_DIR = "config_runtime"
+SETTING_FILE = os.path.join(CONFIG_RUNTIME_DIR, "settings.toml")
+PERSON_DEVICE_STATUS_CONFIG = os.path.join(CONFIG_RUNTIME_DIR, "person_device_status.toml")
 
 CACHE_DIR = "cache"
 ADMIN_COOKIE_FILE = os.path.join(CACHE_DIR, "admin_cookies.json")
@@ -46,8 +50,8 @@ def internal_error(e):
 def request_entity_too_large(e):
     return jsonify({'error': '文件大小超过限制（最大 2GB）'}), 413
 
-# 默认设置
-DEFAULT_SETTINGS = {
+# 默认设置（在 settings.toml 创建时使用）
+_DEFAULT_SETTINGS = {
     "water_token": ""
 }
 
@@ -55,28 +59,32 @@ DEFAULT_SETTINGS = {
 def init_app():
     os.makedirs(DOWNLOAD_DIRECTORY, exist_ok=True)
     os.makedirs(CACHE_DIR, exist_ok=True)
+    os.makedirs(CONFIG_RUNTIME_DIR, exist_ok=True)
+
+    # 设置文件 settings.toml
     if not os.path.exists(SETTING_FILE):
-        save_settings(DEFAULT_SETTINGS)
-    # 检测 secret_key.txt，不存在则创建，默认写入 kyrian
-    if not os.path.exists('secret_key.txt'):
-        with open('secret_key.txt', 'w', encoding='utf-8') as f:
+        save_settings(_DEFAULT_SETTINGS)
+
+    # secret_key.txt（保持 txt 格式，不涉及结构变化）
+    secret_key_path = os.path.join(CONFIG_RUNTIME_DIR, 'secret_key.txt')
+    if not os.path.exists(secret_key_path):
+        with open(secret_key_path, 'w', encoding='utf-8') as f:
             f.write('kyrian')
 
-# 读取设置文件
-def load_settings():
-    try:
-        if os.path.exists(SETTING_FILE):
-            with open(SETTING_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        return {}
-    except Exception:
-        return {}
+    # person_device_status 运行时配置文件
+    if not os.path.exists(PERSON_DEVICE_STATUS_CONFIG):
+        _init_pd_config()
 
-# 保存设置文件
+# 读取设置文件（TOML）
+def load_settings():
+    data = toml_load(SETTING_FILE)
+    return data if data is not None else {}
+
+
+# 保存设置文件（TOML）
 def save_settings(settings):
     try:
-        with open(SETTING_FILE, 'w', encoding='utf-8') as f:
-            json.dump(settings, f, ensure_ascii=False, indent=4)
+        toml_dump(settings, SETTING_FILE)
         return True
     except Exception as e:
         app.logger.error(f'保存设置错误: {str(e)}')
@@ -252,8 +260,9 @@ def list_directory(subpath=""):
 
 # 读取密钥文件
 def get_secret_key():
+    secret_key_path = os.path.join(CONFIG_RUNTIME_DIR, 'secret_key.txt')
     try:
-        with open('secret_key.txt', 'r') as f:
+        with open(secret_key_path, 'r') as f:
             return f.read().strip()
     except FileNotFoundError:
         return None
@@ -331,20 +340,22 @@ def upload_file():
 def about():
     return render_template('about.html', current_page='about')
 
-#工单数据API
+#工单数据API（暂时禁用）
 @app.route('/get_ticket_data')
 def get_ticket_info():
-    try:
-        ticket_data = get_ticket_data()
-        return jsonify(ticket_data)
-    except Exception as e:
-        app.logger.error(f'获取工单数据错误: {str(e)}')
-        return jsonify({
-            'title': '获取失败',
-            'status': '错误',
-            'assignee': '未知',
-            'timeout': '未知'
-        }), 500
+    # 该接口暂时禁用
+    # try:
+    #     ticket_data = get_night_check_data()
+    #     return jsonify(ticket_data)
+    # except Exception as e:
+    #     app.logger.error(f'获取工单数据错误: {str(e)}')
+    #     return jsonify({
+    #         'title': '获取失败',
+    #         'status': '错误',
+    #         'assignee': '未知',
+    #         'timeout': '未知'
+    #     }), 500
+    return jsonify({'error': '该接口已暂时禁用'}), 503
 
 # ticket_timeout 授权
 @app.route('/api/get_auth')
@@ -633,15 +644,34 @@ def admin_logout():
 # ===================================================================
 # ========== Person Device Status (人员设备状态) ==========
 
-# 项目中心坐标（贵阳）
-PROJECT_CENTER_LON = 106.73841555681847
-PROJECT_CENTER_LAT = 26.559202447498212
-
 PERSON_DEVICE_STATUS_CACHE = os.path.join(CACHE_DIR, "person_device_status.json")
 PERSON_DEVICE_STATUS_HISTORY_CACHE = os.path.join(CACHE_DIR, "person_device_status_history.json")
-PERSON_DEVICE_STATUS_URL = "https://heimdallr.onewo.com/api/headquarter/zyt/last/allDevice"
-PERSON_DEVICE_STATUS_PROJECT_CODE = "52010017"
+
+_PD_API = API_DEFS["person_device_status"]
+PERSON_DEVICE_STATUS_URL = _PD_API["url"]
 MAX_HISTORY_RECORDS = 100
+
+
+def _init_pd_config():
+    """初始化 person_device_status 运行时 TOML 配置（使用 api_defs 中的默认值）"""
+    default = {
+        "name": _PD_API["default_payload"]["name"],
+        "project_code": _PD_API["default_payload"]["projectCode"],
+        "project_center_lon": 106.73841555681847,
+        "project_center_lat": 26.559202447498212,
+    }
+    toml_dump(default, PERSON_DEVICE_STATUS_CONFIG)
+
+
+def _load_pd_config():
+    """读取运行时配置，缺失字段回退到默认值"""
+    cfg = toml_load(PERSON_DEVICE_STATUS_CONFIG) or {}
+    return {
+        "name": cfg.get("name", _PD_API["default_payload"]["name"]),
+        "project_code": cfg.get("project_code", _PD_API["default_payload"]["projectCode"]),
+        "center_lon": cfg.get("project_center_lon", 106.73841555681847),
+        "center_lat": cfg.get("project_center_lat", 26.559202447498212),
+    }
 
 
 def haversine_distance(lon1, lat1, lon2, lat2):
@@ -654,45 +684,30 @@ def haversine_distance(lon1, lat1, lon2, lat2):
     return c * 6371000  # 地球平均半径（米）
 
 
-def get_person_device_headers():
-    """从 config.json 读取认证头"""
-    try:
-        with open('config.json', 'r', encoding='utf-8') as f:
-            cfg = json.load(f)
-        h = cfg.get('headers', {})
-        return {
-            "Authorization": h.get("Authorization", ""),
-            "Content-Type": "application/json",
-            "type": "heimdallr",
-            "systemId": h.get("systemId", ""),
-            "USER": h.get("USER", ""),
-            "COMPANY": h.get("COMPANY", ""),
-            "System-Tag": h.get("System-Tag", "web"),
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        }
-    except Exception:
-        return {}
-
-
 def query_person_device_status():
-    """查询「李仕科」的设备位置状态，结果写入缓存"""
+    """查询指定人员的设备位置状态，结果写入缓存"""
+    pd_cfg = _load_pd_config()
+    person_name = pd_cfg["name"]
+    project_code = pd_cfg["project_code"]
+    center_lon = pd_cfg["center_lon"]
+    center_lat = pd_cfg["center_lat"]
+
     timestamp = int(time.time() * 1000)
-    headers = get_person_device_headers()
     payload = {
-        "name": "李仕科",
-        "projectCode": PERSON_DEVICE_STATUS_PROJECT_CODE,
+        "name": person_name,
+        "projectCode": project_code,
         "type": "1",
         "limitFlag": 1,
     }
 
     try:
-        resp = requests.post(PERSON_DEVICE_STATUS_URL, json=payload, headers=headers, timeout=10)
+        resp = requests.post(PERSON_DEVICE_STATUS_URL, json=payload, headers=HEIMDALLR_HEADERS, timeout=10)
         resp.raise_for_status()
         data = resp.json()
     except Exception as e:
         app.logger.error(f"人员设备状态查询失败: {e}")
         _write_location_cache(timestamp, False, "500", [
-            {"name": "李仕科", "distance_m": 0, "status": "0"}
+            {"name": person_name, "distance_m": 0, "status": "0"}
         ])
         return
 
@@ -702,7 +717,7 @@ def query_person_device_status():
 
     found = None
     for item in raw_list:
-        if item.get("name") == "李仕科":
+        if item.get("name") == person_name:
             found = item
             break
 
@@ -710,14 +725,14 @@ def query_person_device_status():
         lon = found.get("longitude", 0)
         lat = found.get("latitude", 0)
         if lon and lat:
-            distance = round(haversine_distance(PROJECT_CENTER_LON, PROJECT_CENTER_LAT, lon, lat), 2)
-            record = {"name": "李仕科", "distance_m": distance, "status": "1"}
+            distance = round(haversine_distance(center_lon, center_lat, lon, lat), 2)
+            record = {"name": person_name, "distance_m": distance, "status": "1"}
         else:
             # 设备在线但未开启定位，lat/lon 为 0
-            record = {"name": "李仕科", "distance_m": 0, "status": "1"}
+            record = {"name": person_name, "distance_m": 0, "status": "1"}
     else:
         # 设备离线
-        record = {"name": "李仕科", "distance_m": 0, "status": "0"}
+        record = {"name": person_name, "distance_m": 0, "status": "0"}
 
     _write_location_cache(timestamp, is_ok, code, [record])
 

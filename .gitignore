@@ -7,6 +7,5 @@ download/*
 
 static/images/
 
-setting.json
-secret_key.txt
+config_runtime/
 cache/
