@@ -345,7 +345,7 @@ function doUpload(file, overwrite) {
                 location.reload();
             }, 1500);
         } else {
-            var msg = '上传失败';
+            var msg = '上传失败 (HTTP ' + xhr.status + ')';
             try {
                 var resp = JSON.parse(xhr.responseText);
                 msg = resp.error || msg;
@@ -356,6 +356,17 @@ function doUpload(file, overwrite) {
             btn.disabled = false;
             progressDiv.style.display = 'none';
         }
+    };
+
+    xhr.ontimeout = function() {
+        _uploading = false;
+        _currentXHR = null;
+        cancelBtn.style.display = 'none';
+        statusDiv.textContent = '上传超时，请检查网络后重试';
+        statusDiv.className = 'upload-status error';
+        btn.style.display = 'block';
+        btn.disabled = false;
+        progressDiv.style.display = 'none';
     };
 
     xhr.onerror = function() {
@@ -370,6 +381,8 @@ function doUpload(file, overwrite) {
     };
 
     xhr.open('POST', '/upload', true);
+    xhr.withCredentials = true;   // 确保移动端 cookie 发送
+    xhr.timeout = 300000;         // 5 分钟超时（移动端弱网）
     xhr.send(formData);
 }
 

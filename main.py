@@ -13,13 +13,13 @@ from config.core.toml_util import load as toml_load, dump as toml_dump
 def safe_filename(filename):
     # 移除路径分隔符，防止路径穿越
     filename = filename.replace('/', '_').replace('\\', '_')
-    # 移除控制字符和 null 字节
-    filename = ''.join(c for c in filename if c >= ' ' or c in '\t\r\n')
+    # 移除控制字符（除空格外的所有 c < ' ' 字符，含 \t \r \n \0）
+    filename = ''.join(c for c in filename if c >= ' ')
     # 移除首尾空白
     filename = filename.strip(' .')
-    # 压缩连续空格/下划线
+    # 压缩连续空格（保留连续下划线，如 __UNI__ 是合法命名）
     import re
-    filename = re.sub(r'[ _]{2,}', '_', filename)
+    filename = re.sub(r'  +', ' ', filename)
     return filename if filename else 'untitled'
 import os
 from crawler.res import get_night_check_data
@@ -290,6 +290,7 @@ def upload_file():
         # 验证管理员cookie
         token = request.cookies.get('admin_token', '')
         if not token:
+            app.logger.warning('上传请求未携带 admin_token cookie (可能来自移动端)')
             return jsonify({'error': '未授权'}), 403
         cookies = load_admin_cookies()
         if not any(c['token'] == token for c in cookies):
@@ -856,7 +857,12 @@ if __name__ == "__main__":
     t = threading.Thread(target=_scheduler_loop, daemon=True)
     t.start()
 
-    from waitress import serve
     print("服务器已启动: http://0.0.0.0:5000")
-    serve(app, host="0.0.0.0", port=5000, threads=8)
+    from waitress import serve
+    serve(app,
+          host="0.0.0.0",
+          port=5000,
+          threads=8,
+          max_request_body_size=2147483648,  # 2GB，与 MAX_CONTENT_LENGTH 一致
+          recv_bytes=65536)  # 增大接收缓冲，大文件上传更快
 
