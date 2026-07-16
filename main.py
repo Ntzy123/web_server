@@ -4,6 +4,7 @@ import json, requests
 import uuid, zoneinfo
 import threading, time
 from datetime import datetime, timezone, timedelta
+from collections import defaultdict
 from flask import Flask, render_template, send_from_directory, abort, request, redirect, url_for, flash, jsonify
 from urllib.parse import urlparse
 from math import radians, cos, sin, asin, sqrt
@@ -654,24 +655,37 @@ MAX_HISTORY_RECORDS = 100
 
 
 def _init_pd_config():
-    """初始化 person_device_status 运行时 TOML 配置（使用 api_defs 中的默认值）"""
+    """初始化 person_device_status 运行时 TOML 配置（多人员格式）"""
     default = {
-        "name": _PD_API["default_payload"]["name"],
-        "project_code": _PD_API["default_payload"]["projectCode"],
         "project_center_lon": 106.73841555681847,
         "project_center_lat": 26.559202447498212,
+        "persons": [
+            {"name": "李仕科", "project_code": "52010017"},
+            {"name": "吴学亮", "project_code": "52010017"},
+            {"name": "李靖", "project_code": "52010020"},
+        ],
     }
     toml_dump(default, PERSON_DEVICE_STATUS_CONFIG)
 
 
 def _load_pd_config():
-    """读取运行时配置，缺失字段回退到默认值"""
+    """读取运行时配置，缺失字段回退到默认值（兼容旧格式）"""
     cfg = toml_load(PERSON_DEVICE_STATUS_CONFIG) or {}
+    center_lon = cfg.get("project_center_lon", 106.73841555681847)
+    center_lat = cfg.get("project_center_lat", 26.559202447498212)
+
+    # 兼容旧格式：顶层 name + project_code → 转为单人的 persons 列表
+    if "persons" not in cfg:
+        name = cfg.get("name", _PD_API["default_payload"]["name"])
+        proj_code = cfg.get("project_code", _PD_API["default_payload"]["projectCode"])
+        persons = [{"name": name, "project_code": proj_code}]
+    else:
+        persons = cfg["persons"]
+
     return {
-        "name": cfg.get("name", _PD_API["default_payload"]["name"]),
-        "project_code": cfg.get("project_code", _PD_API["default_payload"]["projectCode"]),
-        "center_lon": cfg.get("project_center_lon", 106.73841555681847),
-        "center_lat": cfg.get("project_center_lat", 26.559202447498212),
+        "center_lon": center_lon,
+        "center_lat": center_lat,
+        "persons": persons,
     }
 
 
@@ -686,56 +700,69 @@ def haversine_distance(lon1, lat1, lon2, lat2):
 
 
 def query_person_device_status():
-    """查询指定人员的设备位置状态，结果写入缓存"""
+    """查询各人员在项目范围内的设备位置状态，结果写入缓存"""
     pd_cfg = _load_pd_config()
-    person_name = pd_cfg["name"]
-    project_code = pd_cfg["project_code"]
     center_lon = pd_cfg["center_lon"]
     center_lat = pd_cfg["center_lat"]
+    persons = pd_cfg["persons"]
 
     timestamp = int(time.time() * 1000)
-    payload = {
-        "name": person_name,
-        "projectCode": project_code,
-        "type": "1",
-        "limitFlag": 1,
-    }
 
-    try:
-        resp = requests.post(PERSON_DEVICE_STATUS_URL, json=payload, headers=HEIMDALLR_HEADERS, timeout=10)
-        resp.raise_for_status()
-        data = resp.json()
-    except Exception as e:
-        app.logger.error(f"人员设备状态查询失败: {e}")
-        _write_location_cache(timestamp, False, "500", [
-            {"name": person_name, "distance_m": 0, "status": "0"}
-        ])
-        return
+    # 按 project_code 分组，每组只需调用一次上游 API（空 name 查全体）
+    project_groups = defaultdict(list)
+    for p in persons:
+        project_groups[p["project_code"]].append(p["name"])
 
-    is_ok = data.get("isOk", False)
-    code = data.get("code", "500")
-    raw_list = data.get("data", [])
+    records = []
+    all_ok = True
+    final_code = "200"
 
-    found = None
-    for item in raw_list:
-        if item.get("name") == person_name:
-            found = item
-            break
+    for proj_code, names in project_groups.items():
+        payload = {
+            "name": "",  # 空 name 查询项目全体
+            "projectCode": proj_code,
+            "type": "1",
+            "limitFlag": 1,
+        }
+        try:
+            resp = requests.post(PERSON_DEVICE_STATUS_URL, json=payload, headers=HEIMDALLR_HEADERS, timeout=10)
+            resp.raise_for_status()
+            data = resp.json()
+        except Exception as e:
+            app.logger.error(f"项目 {proj_code} 人员设备状态查询失败: {e}")
+            for name in names:
+                records.append({"name": name, "distance_m": 0, "status": "0"})
+            all_ok = False
+            final_code = "500"
+            continue
 
-    if found and found.get("status") == "1":
-        lon = found.get("longitude", 0)
-        lat = found.get("latitude", 0)
-        if lon and lat:
-            distance = round(haversine_distance(center_lon, center_lat, lon, lat), 2)
-            record = {"name": person_name, "distance_m": distance, "status": "1"}
-        else:
-            # 设备在线但未开启定位，lat/lon 为 0
-            record = {"name": person_name, "distance_m": 0, "status": "1"}
-    else:
-        # 设备离线
-        record = {"name": person_name, "distance_m": 0, "status": "0"}
+        is_ok = data.get("isOk", False)
+        code = data.get("code", "500")
+        if not is_ok:
+            all_ok = False
+            final_code = code
 
-    _write_location_cache(timestamp, is_ok, code, [record])
+        # 构建 name → item 映射，快速查找
+        raw_list = data.get("data", [])
+        name_to_item = {item.get("name"): item for item in raw_list}
+
+        for name in names:
+            found = name_to_item.get(name)
+            if found and found.get("status") == "1":
+                lon = found.get("longitude", 0)
+                lat = found.get("latitude", 0)
+                if lon and lat:
+                    distance = round(haversine_distance(center_lon, center_lat, lon, lat), 2)
+                    record = {"name": name, "distance_m": distance, "status": "1"}
+                else:
+                    # 设备在线但未开启定位
+                    record = {"name": name, "distance_m": 0, "status": "1"}
+            else:
+                # 设备离线
+                record = {"name": name, "distance_m": 0, "status": "0"}
+            records.append(record)
+
+    _write_location_cache(timestamp, all_ok, final_code, records)
 
 
 def _append_location_history(timestamp, record):
@@ -766,18 +793,18 @@ def _append_location_history(timestamp, record):
 
 
 def _write_location_cache(timestamp, is_ok, code, records):
-    """将结果写入最新缓存，并根据变化追加历史记录"""
-    # 先读取当前最新缓存，获取前一条用于比较
-    prev_status = None
-    prev_distance = None
+    """将结果写入最新缓存，并根据变化（逐人）追加历史记录"""
+    # 读取当前最新缓存，获取各人上一次的状态/距离
+    prev_records_map = {}  # name -> {status, distance_m}
     if os.path.exists(PERSON_DEVICE_STATUS_CACHE):
         try:
             with open(PERSON_DEVICE_STATUS_CACHE, 'r', encoding='utf-8') as f:
                 prev_data = json.load(f)
-            prev_records = prev_data.get("records", [])
-            if prev_records:
-                prev_status = prev_records[0].get("status")
-                prev_distance = prev_records[0].get("distance_m", 0)
+            for pr in prev_data.get("records", []):
+                prev_records_map[pr["name"]] = {
+                    "status": pr.get("status"),
+                    "distance_m": pr.get("distance_m", 0),
+                }
         except Exception:
             pass
 
@@ -793,18 +820,19 @@ def _write_location_cache(timestamp, is_ok, code, records):
         json.dump(data, f, ensure_ascii=False, indent=2)
     os.replace(tmp, PERSON_DEVICE_STATUS_CACHE)
 
-    # 判断是否需要追加历史记录
-    if records:
-        cur = records[0]
+    # 逐人判断是否需要追加历史记录
+    for cur in records:
+        name = cur.get("name", "")
         cur_status = cur.get("status")
         cur_distance = cur.get("distance_m", 0)
 
+        prev = prev_records_map.get(name)
         should_record = False
-        if prev_status is None:
+        if prev is None:
             should_record = True  # 首次记录
-        elif cur_status != prev_status:
+        elif cur_status != prev["status"]:
             should_record = True  # 状态发生变化
-        elif abs(cur_distance - prev_distance) > 100:
+        elif abs(cur_distance - prev["distance_m"]) > 100:
             should_record = True  # 距离变化超过 100 米
 
         if should_record:
