@@ -885,7 +885,7 @@ if __name__ == "__main__":
     t = threading.Thread(target=_scheduler_loop, daemon=True)
     t.start()
 
-    print("服务器已启动: http://0.0.0.0:5000")
+    print("服务器已启动: http://127.0.0.1:5000")
     from waitress import serve
     serve(app,
           host="0.0.0.0",

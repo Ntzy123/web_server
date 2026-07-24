@@ -184,26 +184,30 @@
 }
 
 /* ===== 文件链接 ===== */
-.folder-link, .file-link {
-    display: flex;
+.file-link {
+    display: inline-flex;
     align-items: center;
     gap: 10px;
     color: #2c3e50;
     text-decoration: none;
     font-weight: 500;
+    max-width: 100%;
     overflow: hidden;
 }
 
-.folder-link:hover, .file-link:hover {
+.file-link:hover {
     color: #6a11cb;
 }
 
-.folder-link .file-icon, .file-link .file-icon {
+.file-link .file-icon {
     font-size: 1.3rem;
     flex-shrink: 0;
 }
 
-.folder-link .file-name, .file-link .file-name {
+/* ===== 文件名（可选中的文本） ===== */
+.file-name {
+    -webkit-user-select: text;
+    user-select: text;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -677,12 +681,12 @@
     }
 
     /* 卡片内容：icon 左，文字块右 flex 行 */
-    .file-row td.col-name a.folder-link,
     .file-row td.col-name a.file-link {
-        display: flex;
+        display: inline-flex;
         align-items: center;
         gap: 12px;
         padding: 14px 16px;
+        max-width: 100%;
         overflow: hidden;
         text-decoration: none;
         color: #2c3e50;
@@ -711,6 +715,8 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        -webkit-user-select: text;
+        user-select: text;
     }
 
     /* 元信息：灰色小字 */

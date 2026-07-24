@@ -70,23 +70,13 @@
                     {% for item in items %}
                     <tr class="file-row">
                         <td class="col-name">
-                            {% if item.is_dir %}
-                            <a href="/download/{{ item.path }}" class="folder-link">
-                                <span class="file-icon">📁</span>
+                            <a href="/download/{{ item.path }}" class="file-link"{% if not item.is_dir %} target="_blank"{% endif %}>
+                                <span class="file-icon">{{ "📁" if item.is_dir else "📄" }}</span>
                                 <span class="file-text-block">
                                     <span class="file-name">{{ item.name }}</span>
                                     <span class="file-meta-mobile">{{ item.modified }} | {{ item.size }}</span>
                                 </span>
                             </a>
-                            {% else %}
-                            <a href="/download/{{ item.path }}" class="file-link" target="_blank">
-                                <span class="file-icon">📄</span>
-                                <span class="file-text-block">
-                                    <span class="file-name">{{ item.name }}</span>
-                                    <span class="file-meta-mobile">{{ item.modified }} | {{ item.size }}</span>
-                                </span>
-                            </a>
-                            {% endif %}
                         </td>
                         <td class="col-time">{{ item.modified }}</td>
                         <td class="col-size">{{ item.size }}</td>
@@ -446,5 +436,33 @@ document.addEventListener('keydown', function(event) {
         }
     }
 });
+
+// 允许在文件链接中选中文本复制，同时保留点击导航
+// 核心思路：若点击时检测到文字被选中，则阻止跳转
+(function() {
+    var _onLink = false, _selChanged = false;
+
+    document.addEventListener('mousedown', function(e) {
+        _onLink = !!e.target.closest('.file-link');
+        _selChanged = false;
+    });
+
+    // selectionchange 只在选区真正变化时触发，能精确区分
+    // 新增选中 vs 之前已有的选中
+    document.addEventListener('selectionchange', function() {
+        if (_onLink && window.getSelection().toString().length > 0) {
+            _selChanged = true;
+        }
+    });
+
+    document.addEventListener('click', function(e) {
+        var link = e.target.closest('.file-link');
+        if (!link) return;
+
+        if (_selChanged) {
+            e.preventDefault();
+        }
+    });
+})();
 </script>
 {% endblock %}
