@@ -21,7 +21,7 @@
                         <h3>Water Token</h3>
                         <p>桶装水API认证令牌</p>
                     </div>
-                    <button class="edit-btn" data-key="water_token" data-title="Water Token" data-value="access_token={{ settings.get('water_token', '')|e }}" disabled onclick="openEditModal(this)">编辑</button>
+                    <button class="edit-btn" data-key="water_token" data-title="Water Token" data-value="{{ settings.get('water_token', '')|e }}" disabled onclick="openEditModal(this)">编辑</button>
                 </div>
             </div>
             <!-- WBTools Version -->
@@ -133,12 +133,7 @@
 
     function saveSetting() {
         const key = document.getElementById('editKey').value;
-        let value = document.getElementById('editValue').value.trim();
-        
-        // water_token 去掉 access_token= 前缀
-        if (key === 'water_token' && value.startsWith('access_token=')) {
-            value = value.substring('access_token='.length);
-        }
+        const value = document.getElementById('editValue').value.trim();
         
         fetch('/api/settings', {
             method: 'POST',
