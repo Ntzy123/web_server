@@ -53,7 +53,8 @@ def request_entity_too_large(e):
 
 # 默认设置（在 settings.toml 创建时使用）
 _DEFAULT_SETTINGS = {
-    "water_token": ""
+    "water_token": "",
+    "ticket_timeout_access": "OK"
 }
 
 # 初始化应用（创建必要的目录和配置文件）
@@ -362,7 +363,7 @@ def get_ticket_info():
 # ticket_timeout 授权
 @app.route('/api/get_auth')
 def get_auth():
-    return "OK"
+    return load_settings().get('ticket_timeout_access', 'OK')
 
 
 # 配置页面

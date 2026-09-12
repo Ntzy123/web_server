@@ -24,6 +24,16 @@
                     <button class="edit-btn" data-key="water_token" data-title="Water Token" data-value="{{ settings.get('water_token', '')|e }}" disabled onclick="openEditModal(this)">编辑</button>
                 </div>
             </div>
+            <!-- ticket_timeout_access 配置项 -->
+            <div class="setting-item">
+                <div class="setting-header">
+                    <div class="setting-info">
+                        <h3>Ticket Timeout Access</h3>
+                        <p>Ticket Timeout 权限</p>
+                    </div>
+                    <button class="edit-btn" data-key="ticket_timeout_access" data-title="Ticket Timeout Access" data-value="{{ settings.get('ticket_timeout_access', 'OK') }}" onclick="openEditModal(this)">编辑</button>
+                </div>
+            </div>
             <!-- WBTools Version -->
             <div class="setting-item">
                 <div class="setting-header">
@@ -49,6 +59,10 @@
         <div class="form-group">
             <label id="editLabel">值:</label>
             <textarea id="editValue" class="edit-textarea" rows="6"></textarea>
+            <select id="editSelect" class="form-input" style="display:none;">
+                <option value="OK">OK</option>
+                <option value="ERROR">ERROR</option>
+            </select>
         </div>
         <div class="modal-buttons">
             <button class="btn-cancel" onclick="closeEditModal()">取消</button>
@@ -123,7 +137,14 @@
         document.getElementById('editKey').value = key;
         document.getElementById('modalTitle').textContent = '编辑 ' + title;
         document.getElementById('editLabel').textContent = title + ':';
-        document.getElementById('editValue').value = value;
+        const isSelect = key === 'ticket_timeout_access';
+        document.getElementById('editValue').style.display = isSelect ? 'none' : '';
+        document.getElementById('editSelect').style.display = isSelect ? '' : 'none';
+        if (isSelect) {
+            document.getElementById('editSelect').value = value;
+        } else {
+            document.getElementById('editValue').value = value;
+        }
         document.getElementById('editModal').style.display = 'block';
     }
 
@@ -133,7 +154,9 @@
 
     function saveSetting() {
         const key = document.getElementById('editKey').value;
-        const value = document.getElementById('editValue').value.trim();
+        const value = (key === 'ticket_timeout_access'
+            ? document.getElementById('editSelect').value
+            : document.getElementById('editValue').value).trim();
         
         fetch('/api/settings', {
             method: 'POST',
