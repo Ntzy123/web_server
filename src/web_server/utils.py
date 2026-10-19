@@ -1,4 +1,4 @@
-# config/core/toml_util.py
+# utils.py
 """简化的 TOML 读写工具（利用 stdlib tomllib 读取，手动序列化写入）"""
 
 import os

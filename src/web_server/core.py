@@ -1,15 +1,15 @@
-#main.py
+# core.py — Flask 应用与全部路由
 
 import json, requests
 import uuid, zoneinfo
 import threading, time
 from datetime import datetime, timezone, timedelta
 from collections import defaultdict
-from flask import Flask, render_template, send_from_directory, abort, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, send_from_directory, abort, request, redirect, url_for, flash, jsonify, Response
 from urllib.parse import urlparse
 from math import radians, cos, sin, asin, sqrt
-from config.core.api_defs import HEIMDALLR_HEADERS, API_DEFS
-from config.core.toml_util import load as toml_load, dump as toml_dump
+from .lib.api_defs import HEIMDALLR_HEADERS, API_DEFS
+from .utils import load as toml_load, dump as toml_dump
 # 安全处理文件名：防路径穿越，保留中文和特殊字符
 def safe_filename(filename):
     # 移除路径分隔符，防止路径穿越
@@ -23,7 +23,7 @@ def safe_filename(filename):
     filename = re.sub(r'  +', ' ', filename)
     return filename if filename else 'untitled'
 import os
-from crawler.res import get_night_check_data
+from .lib.night_check import get_night_check_data
 
 app = Flask(__name__)
 DOWNLOAD_DIRECTORY = "download"  # 定义下载目录
@@ -486,6 +486,47 @@ def get_water_data():
         }), 500
 
 
+# easycheck accessToken API
+@app.route('/api/get-access-token', methods=['POST'])
+def get_easycheck_access_token():
+    """通过手机号和密码获取 easycheck accessToken。
+
+    Request body (JSON):
+        {
+            "mobile": "138xxxxxxxx",
+            "password": "your_password"
+        }
+    """
+    if not request.is_json:
+        return jsonify({'code': 1, 'success': False, 'msg': '请求体必须是 JSON'}), 400
+
+    data = request.get_json(silent=True) or {}
+    mobile = (data.get('mobile') or '').strip()
+    password = (data.get('password') or '').strip()
+
+    if not mobile:
+        return jsonify({'code': 1, 'success': False, 'msg': 'mobile 不能为空'}), 400
+    if not password:
+        return jsonify({'code': 1, 'success': False, 'msg': 'password 不能为空'}), 400
+
+    try:
+        from get_easycheck_url import get_access_token
+        token = get_access_token(mobile, password)
+    except Exception as e:
+        app.logger.error(f'获取 easycheck accessToken 失败 - 手机号: {mobile}, 错误: {e}')
+        return jsonify({'code': 2, 'success': False, 'msg': f'获取失败: {e}'}), 500
+
+    app.logger.info(f'获取 easycheck accessToken - 手机号: {mobile}')
+    # jsonify 会按键名排序，这里手动序列化以保持 code/msg/success/access_token 顺序
+    payload = {
+        'code': 0,
+        'msg': '请求成功',
+        'success': True,
+        'access_token': token,
+    }
+    return Response(json.dumps(payload, ensure_ascii=False), mimetype='application/json')
+
+
 # ========== WBTools Version API ==========
 
 
@@ -878,13 +919,12 @@ def person_device_location_history():
 
 
 #启动
-if __name__ == "__main__":
+def main():
     init_app()  # 初始化应用
     app.secret_key = 'your-secret-key-here'  # 用于flash消息
 
     # 启动人员设备状态定时查询（守护线程，每分钟 0 秒执行）
-    t = threading.Thread(target=_scheduler_loop, daemon=True)
-    t.start()
+    threading.Thread(target=_scheduler_loop, daemon=True).start()
 
     print("服务器已启动: http://127.0.0.1:5000")
     from waitress import serve

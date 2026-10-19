@@ -1,11 +1,33 @@
+# Virtual environment
+.venv/
 venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Build artifacts
 dist/
 build/
-__pycache__/
-download/*
+*.egg-info/
 *.spec
 
-static/images/
+# IDE
+.vscode/
+.idea/
 
-config_runtime/
+# Project-specific (runtime dirs, 相对工作目录自动创建)
+log/
+res/
+*.log
+download/
 cache/
+config_runtime/
+
+# Test & coverage
+.coverage
+.coverage.*
+htmlcov/
+.cache/

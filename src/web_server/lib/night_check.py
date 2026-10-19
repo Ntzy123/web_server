@@ -1,8 +1,8 @@
-# crawler/res.py
+# lib/night_check.py
 """夜查工单查询"""
 
 import requests
-from config.core.api_defs import HEIMDALLR_HEADERS, API_DEFS
+from .api_defs import HEIMDALLR_HEADERS, API_DEFS
 
 
 def get_night_check_data():

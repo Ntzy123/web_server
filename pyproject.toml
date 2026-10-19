@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "web-server"
+version = "1.0.0"
+description = "个人 Web 服务器：下载站、设置、桶装水统计、人员设备状态、WBTools 版本 API"
+license = { text = "MIT" }
+authors = [{ name = "Ntzy123"}]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "flask>=3.0",
+    "requests>=2.31.0",
+    "waitress>=3.0",
+    "tzdata",
+]
+
+[project.optional-dependencies]
+build = ["build"]
+test = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+]
+
+[project.scripts]
+web-server = "web_server:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+web_server = [
+    "templates/*.html",
+    "static/css/*.css",
+    "static/images/*",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --tb=short"
+norecursedirs = [
+    ".venv",
+    "venv",
+    "dist",
+    "build",
+]
