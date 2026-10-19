@@ -54,6 +54,8 @@ def request_entity_too_large(e):
 # 默认设置（在 settings.toml 创建时使用）
 _DEFAULT_SETTINGS = {
     "water_token": "",
+    "zyt_username": "",
+    "zyt_password": "",
     "ticket_timeout_access": "OK"
 }
 
@@ -63,9 +65,15 @@ def init_app():
     os.makedirs(CACHE_DIR, exist_ok=True)
     os.makedirs(CONFIG_RUNTIME_DIR, exist_ok=True)
 
-    # 设置文件 settings.toml
+    # 设置文件 settings.toml（缺失的默认项补齐，便于新增配置项自动出现在文件中）
     if not os.path.exists(SETTING_FILE):
         save_settings(_DEFAULT_SETTINGS)
+    else:
+        settings = load_settings()
+        missing = {k: v for k, v in _DEFAULT_SETTINGS.items() if k not in settings}
+        if missing:
+            settings.update(missing)
+            save_settings(settings)
 
     # secret_key.txt（保持 txt 格式，不涉及结构变化）
     secret_key_path = os.path.join(CONFIG_RUNTIME_DIR, 'secret_key.txt')
@@ -96,6 +104,47 @@ def save_settings(settings):
 def get_water_token():
     settings = load_settings()
     return settings.get('water_token', '')
+
+
+# ========== Water Token 自动更新（每周一 00:00） ==========
+
+def _next_monday_midnight(now=None):
+    """返回严格晚于 now 的下一个周一 00:00"""
+    now = now or datetime.now()
+    days = (7 - now.weekday()) % 7
+    nxt = (now + timedelta(days=days)).replace(hour=0, minute=0, second=0, microsecond=0)
+    return nxt if nxt > now else nxt + timedelta(days=7)
+
+
+def refresh_water_token():
+    """用 get-easycheck-url 获取 accessToken 并写入 water_token"""
+    settings = load_settings()
+    mobile = str(settings.get('zyt_username', '')).strip()
+    password = str(settings.get('zyt_password', '')).strip()
+    if not mobile or not password:
+        app.logger.warning('Water Token 自动更新跳过：未配置 zyt_username / zyt_password')
+        return False
+
+    try:
+        from get_easycheck_url import get_access_token
+        token = get_access_token(mobile, password)
+    except Exception as e:
+        app.logger.error(f'Water Token 自动更新失败: {e}')
+        return False
+
+    settings = load_settings()  # 重新读取，避免覆盖期间的其他修改
+    settings['water_token'] = token
+    if not save_settings(settings):
+        return False
+    app.logger.info('Water Token 已自动更新')
+    return True
+
+
+def _water_token_scheduler_loop():
+    """定时循环：每周一 00:00 更新一次 Water Token"""
+    while True:
+        time.sleep((_next_monday_midnight() - datetime.now()).total_seconds())
+        refresh_water_token()
 
 # ========== Admin Cookie Management ==========
 
@@ -925,6 +974,9 @@ def main():
 
     # 启动人员设备状态定时查询（守护线程，每分钟 0 秒执行）
     threading.Thread(target=_scheduler_loop, daemon=True).start()
+
+    # 启动 Water Token 自动更新（守护线程，每周一 00:00 执行）
+    threading.Thread(target=_water_token_scheduler_loop, daemon=True).start()
 
     print("服务器已启动: http://127.0.0.1:5000")
     from waitress import serve

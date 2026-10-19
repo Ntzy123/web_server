@@ -29,3 +29,15 @@ def test_routes_respond():
     assert client.get("/").status_code == 200
     assert client.get("/api/get_auth").data == b"OK"
     assert client.get("/api/nope").status_code == 404
+
+
+def test_next_monday_midnight():
+    from datetime import datetime
+    from web_server.core import _next_monday_midnight
+
+    # 周一 00:00:00 → 下周一（严格晚于当前时刻）
+    assert _next_monday_midnight(datetime(2026, 10, 19)) == datetime(2026, 10, 26)
+    # 周一中间 → 下周一
+    assert _next_monday_midnight(datetime(2026, 10, 19, 10, 30)) == datetime(2026, 10, 26)
+    # 周日 → 次日 00:00
+    assert _next_monday_midnight(datetime(2026, 10, 18, 23, 59)) == datetime(2026, 10, 19)
