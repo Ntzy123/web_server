@@ -26,7 +26,7 @@ import os
 from .lib.night_check import get_night_check_data
 
 app = Flask(__name__)
-DOWNLOAD_DIRECTORY = "download"  # 定义下载目录
+DOWNLOAD_DIRECTORY = os.path.abspath("download")  # 定义下载目录（必须是绝对路径：Flask 3.1 的 send_from_directory 会把相对目录按 app.root_path 解析）
 CONFIG_RUNTIME_DIR = "config_runtime"
 SETTING_FILE = os.path.join(CONFIG_RUNTIME_DIR, "settings.toml")
 PERSON_DEVICE_STATUS_CONFIG = os.path.join(CONFIG_RUNTIME_DIR, "person_device_status.toml")
@@ -244,7 +244,8 @@ def list_directory_contents(directory, base_path=""):
     
     for entry in entries:
         full_path = os.path.join(directory, entry)
-        relative_path = os.path.join(base_path, entry) if base_path else entry
+        # 统一用 / 作为 URL 路径分隔符（Windows 的 \ 会被 werkzeug safe_join 拒绝）
+        relative_path = f"{base_path}/{entry}" if base_path else entry
         
         if os.path.isdir(full_path):
             # 文件夹
@@ -285,8 +286,8 @@ def list_directory_contents(directory, base_path=""):
 @app.route('/download')
 @app.route('/download/<path:subpath>')
 def list_directory(subpath=""):
-    # 安全处理路径，防止目录遍历攻击
-    safe_path = os.path.normpath(subpath)
+    # 安全处理路径，防止目录遍历攻击；统一用 / ，供 URL 与 werkzeug safe_join 使用
+    safe_path = os.path.normpath(subpath).replace('\\', '/') if subpath else ''
     if safe_path.startswith('..') or safe_path.startswith('/') or (safe_path and safe_path.startswith('\\')):
         abort(403)
     
